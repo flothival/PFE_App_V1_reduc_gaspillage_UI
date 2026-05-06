@@ -17,3 +17,7 @@ uvicorn~=0.0
 # Forecasting business logic
 pandas>=2.0
 openpyxl>=3.1
+
+# Tests
+pytest~=8.0
+pytest-django~=4.8
