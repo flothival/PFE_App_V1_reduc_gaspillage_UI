@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import time
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
@@ -10,6 +12,8 @@ from .io_utils import CsvSource, load_future_reservations_csv, load_history_csv
 from .model import predict_reservations, train_learned_deltas
 from .split_data import split_for_future
 from .tuning import auto_tune_cfg
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -43,10 +47,18 @@ def run_forecast_pipeline(
         4. Train learned deltas on the full history
         5. Predict amount per (date, school) for the future dates
     """
+    t0 = time.monotonic()
+    logger.info("Pipeline démarré — stock_tampon=%d", stock_tampon)
+
     history = load_history_csv(history_source)
     future_all = load_future_reservations_csv(future_source)
+    logger.debug("CSV chargés — historique: %d lignes, futur: %d lignes", len(history), len(future_all))
 
     plan = split_for_future(history, future_all)
+    logger.debug(
+        "Découpage terminé — train: %d lignes, validate: %d lignes, futur à prédire: %d lignes",
+        len(plan.train_final), len(plan.validate), len(plan.future_to_predict),
+    )
 
     tuning = auto_tune_cfg(
         train_sep_oct=plan.train_tune,
@@ -54,8 +66,13 @@ def run_forecast_pipeline(
         stock_tampon_per_day=stock_tampon,
         min_daily_net_floor=min_daily_net_floor,
     )
+    logger.debug(
+        "Tuning terminé — waste=%s shortage=%s min_daily_net=%s",
+        tuning.total_waste, tuning.total_shortage, tuning.min_daily_net,
+    )
 
     learned_tbl = train_learned_deltas(plan.train_final, tuning.cfg)
+    logger.debug("Deltas appris — %d écoles dans la table", len(learned_tbl))
 
     preds = predict_reservations(plan.future_to_predict, learned_tbl, cfg=tuning.cfg)
     preds = preds.sort_values(["date", "school"]).reset_index(drop=True)
@@ -84,6 +101,13 @@ def run_forecast_pipeline(
         "total_shortage": tuning.total_shortage,
         "min_daily_net": tuning.min_daily_net,
     }
+
+    elapsed = time.monotonic() - t0
+    logger.info(
+        "Pipeline terminé en %.2fs — %d prévisions générées (%s → %s)",
+        elapsed, len(rows),
+        plan.predict_start_date.date(), plan.predict_end_date.date(),
+    )
 
     return ForecastResult(
         rows=rows,

@@ -1,7 +1,10 @@
 import io
+import logging
 
 from django.db import transaction
 from rest_framework import serializers
+
+logger = logging.getLogger(__name__)
 
 from apps.forecasting.models import Forecast, ForecastRow
 from apps.forecasting.services.io_utils import (
@@ -108,6 +111,10 @@ class ForecastCreateSerializer(serializers.Serializer):
         future_file.seek(0)
         future_bytes = future_file.read()
 
+        logger.info(
+            "Lancement du pipeline — user_id=%s history=%s future=%s stock_tampon=%d",
+            user.id, history_file.name, future_file.name, stock_tampon,
+        )
         try:
             result = run_forecast_pipeline(
                 history_source=io.BytesIO(history_bytes),
@@ -115,6 +122,7 @@ class ForecastCreateSerializer(serializers.Serializer):
                 stock_tampon=stock_tampon,
             )
         except Exception as exc:
+            logger.exception("Échec du pipeline — user_id=%s : %s", user.id, exc)
             raise serializers.ValidationError(
                 {"detail": f"Échec du pipeline de prévision : {exc}"}
             )
