@@ -21,15 +21,22 @@ URL = "/api/forecasting/forecasts/"
 
 @pytest.mark.django_db
 def test_list_only_returns_own_forecasts(client_a, client_b, forecast_for_user_a):
-    """user_a voit son forecast, user_b voit une liste vide."""
+    """user_a voit son forecast, user_b voit une liste vide.
+
+    La réponse est paginée → on lit `results` (pas la racine), et `count`
+    pour vérifier le total."""
     response_a = client_a.get(URL)
     assert response_a.status_code == 200
-    assert len(response_a.json()) == 1
-    assert response_a.json()[0]["id"] == forecast_for_user_a.id
+    body_a = response_a.json()
+    assert body_a["count"] == 1
+    assert len(body_a["results"]) == 1
+    assert body_a["results"][0]["id"] == forecast_for_user_a.id
 
     response_b = client_b.get(URL)
     assert response_b.status_code == 200
-    assert response_b.json() == []
+    body_b = response_b.json()
+    assert body_b["count"] == 0
+    assert body_b["results"] == []
 
 
 @pytest.mark.django_db

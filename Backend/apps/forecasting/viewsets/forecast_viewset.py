@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.forecasting.models import Forecast, ForecastRow
+from apps.forecasting.pagination import ForecastPagination
 from apps.forecasting.serializers import (
     ForecastCreateSerializer,
     ForecastDetailSerializer,
@@ -32,6 +33,7 @@ class ForecastViewSet(viewsets.ModelViewSet):
     """
 
     permission_classes = [IsAuthenticated]
+    pagination_class = ForecastPagination
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
