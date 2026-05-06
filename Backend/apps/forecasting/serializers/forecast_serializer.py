@@ -4,9 +4,27 @@ from django.db import transaction
 from rest_framework import serializers
 
 from apps.forecasting.models import Forecast, ForecastRow
+from apps.forecasting.services.io_utils import (
+    load_future_reservations_csv,
+    load_history_csv,
+)
 from apps.forecasting.services.pipeline import run_forecast_pipeline
 
 from .forecast_row_serializer import ForecastRowSerializer
+
+
+def _validate_csv_columns(file_field, loader_fn):
+    """Read the file, parse the CSV, and verify required columns are present.
+
+    Materialises the bytes and resets the cursor so create() can re-read them.
+    Raises ValidationError with a human-readable message if a column is missing.
+    """
+    raw = file_field.read()
+    file_field.seek(0)
+    try:
+        loader_fn(io.BytesIO(raw))
+    except KeyError as exc:
+        raise serializers.ValidationError(str(exc))
 
 
 class ForecastListSerializer(serializers.ModelSerializer):
@@ -69,11 +87,13 @@ class ForecastCreateSerializer(serializers.Serializer):
     def validate_history_file(self, value):
         if not value.name.lower().endswith(".csv"):
             raise serializers.ValidationError("Le fichier doit être un CSV (.csv).")
+        _validate_csv_columns(value, load_history_csv)
         return value
 
     def validate_future_file(self, value):
         if not value.name.lower().endswith(".csv"):
             raise serializers.ValidationError("Le fichier doit être un CSV (.csv).")
+        _validate_csv_columns(value, load_future_reservations_csv)
         return value
 
     def create(self, validated_data):

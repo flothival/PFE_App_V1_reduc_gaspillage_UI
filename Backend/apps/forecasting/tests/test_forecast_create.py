@@ -3,11 +3,10 @@ Tests pour POST /api/forecasting/forecasts/
 
 On vérifie :
 - Auth obligatoire (401 si pas de JWT)
-- Validation des fichiers (400 si CSV manquant ou mauvaise extension)
+- Validation des fichiers (400 si mauvaise extension)
+- Validation stricte des colonnes (400 si colonnes requises absentes)
 - Création réussie (201) → Forecast + ForecastRow persistés, user attribué
 """
-from io import BytesIO
-
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -15,9 +14,21 @@ from apps.forecasting.models import Forecast, ForecastRow
 
 URL = "/api/forecasting/forecasts/"
 
+_HISTORY_CONTENT = (
+    b"date,school,reservation_theorique,presence_reel_eleve\n"
+    b"2025-09-01,SCHOOL A,100,95\n"
+)
+_FUTURE_CONTENT = (
+    b"date,school,reservation_theorique\n"
+    b"2025-11-03,SCHOOL A,100\n"
+)
 
-def _csv_file(name="data.csv", content=b"date,school,reservation\n"):
-    """Construit un faux fichier CSV uploadable via APIClient."""
+
+def _history_csv(name="hist.csv", content=_HISTORY_CONTENT):
+    return SimpleUploadedFile(name, content, content_type="text/csv")
+
+
+def _future_csv(name="fut.csv", content=_FUTURE_CONTENT):
     return SimpleUploadedFile(name, content, content_type="text/csv")
 
 
@@ -33,14 +44,48 @@ def test_create_rejects_non_csv_extension(client_a, mock_pipeline):
     response = client_a.post(
         URL,
         {
-            "history_file": _csv_file(name="hist.txt"),
-            "future_file": _csv_file(name="fut.csv"),
+            "history_file": _history_csv(name="hist.txt"),
+            "future_file": _future_csv(),
             "stock_tampon": 250,
         },
         format="multipart",
     )
     assert response.status_code == 400
     assert "history_file" in response.json()
+
+
+@pytest.mark.django_db
+def test_create_rejects_history_with_missing_column(client_a):
+    """Un historique sans `presence_reel_eleve` renvoie 400 avec un message lisible."""
+    bad_history = _history_csv(content=b"date,school,reservation_theorique\n2025-09-01,SCHOOL A,100\n")
+    response = client_a.post(
+        URL,
+        {
+            "history_file": bad_history,
+            "future_file": _future_csv(),
+            "stock_tampon": 250,
+        },
+        format="multipart",
+    )
+    assert response.status_code == 400
+    assert "history_file" in response.json()
+
+
+@pytest.mark.django_db
+def test_create_rejects_future_with_missing_column(client_a):
+    """Un fichier futur sans `reservation_theorique` renvoie 400 avec un message lisible."""
+    bad_future = _future_csv(content=b"date,school\n2025-11-03,SCHOOL A\n")
+    response = client_a.post(
+        URL,
+        {
+            "history_file": _history_csv(),
+            "future_file": bad_future,
+            "stock_tampon": 250,
+        },
+        format="multipart",
+    )
+    assert response.status_code == 400
+    assert "future_file" in response.json()
 
 
 @pytest.mark.django_db
@@ -51,8 +96,8 @@ def test_create_persists_forecast_and_rows(client_a, user_a, mock_pipeline):
     response = client_a.post(
         URL,
         {
-            "history_file": _csv_file(name="hist.csv"),
-            "future_file": _csv_file(name="fut.csv"),
+            "history_file": _history_csv(),
+            "future_file": _future_csv(),
             "stock_tampon": 250,
         },
         format="multipart",
@@ -87,8 +132,8 @@ def test_create_default_stock_tampon(client_a, mock_pipeline):
     response = client_a.post(
         URL,
         {
-            "history_file": _csv_file(),
-            "future_file": _csv_file(),
+            "history_file": _history_csv(),
+            "future_file": _future_csv(),
         },
         format="multipart",
     )
