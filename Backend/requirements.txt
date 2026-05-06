@@ -13,3 +13,7 @@ psycopg[binary]~=3.0
 
 gunicorn~=23.0
 uvicorn~=0.0
+
+# Forecasting business logic
+pandas>=2.0
+openpyxl>=3.1
