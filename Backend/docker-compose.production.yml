@@ -1,0 +1,47 @@
+version: "3.7"
+
+services:
+  app:
+    image: $CI_REGISTRY_IMAGE_DEVOPS/production:$IMAGE_TAG
+    command: >
+      sh -c "python manage.py migrate--noinput &&
+      gunicorn core.asgi:application --bind 0.0.0.0:8000 --workers 4 --worker-class uvicorn.workers.UvicornWorker"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-net
+      # HTTP route
+      - traefik.http.routers.${PRODUCTION_STACK_NAME}_app-http.entrypoints=http
+      - "traefik.http.routers.${PRODUCTION_STACK_NAME}_app-http.rule=Host(`${PRODUCTION_BACK_URL}`)"
+      - traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.referrerPolicy=no-referrer
+      - traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.stsPreload=true
+      # Security Headers
+      - "traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.customResponseHeaders.Content-Security-Policy=default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
+      - "traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.customResponseHeaders.Permissions-Policy=geolocation=(), microphone=(), camera=()"
+      # Apply middleware to routes
+      - traefik.http.routers.${PRODUCTION_STACK_NAME}_app-http.middlewares=${PRODUCTION_STACK_NAME}_app-headers
+      - traefik.http.routers.${PRODUCTION_STACK_NAME}_app.middlewares=${PRODUCTION_STACK_NAME}_app-headers
+      # HTTPS route
+      - traefik.http.routers.${PRODUCTION_STACK_NAME}_app.entrypoints=https
+      - "traefik.http.routers.${PRODUCTION_STACK_NAME}_app.rule=Host(`${PRODUCTION_BACK_URL}`)"
+      - traefik.http.routers.${PRODUCTION_STACK_NAME}_app.tls=true
+      # Service
+      - traefik.http.services.${PRODUCTION_STACK_NAME}_app.loadbalancer.server.port=8000
+      # Classic Docker labels
+      - track=stable
+      - app.gitlab.com/env=production
+    volumes:
+      - static_files:/app/staticfiles
+      - static:/app/static
+    networks:
+      - traefik-net
+
+volumes:
+  static_files:
+  static:
+
+networks:
+  default:
+  traefik-net:
+    external: true

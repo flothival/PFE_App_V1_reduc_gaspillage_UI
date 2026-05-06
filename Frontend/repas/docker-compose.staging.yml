@@ -1,0 +1,35 @@
+version: "3.7"
+
+services:
+  app:
+    image: $CI_REGISTRY_IMAGE_DEVOPS/staging:$IMAGE_TAG
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-net
+      # HTTP route
+      - traefik.http.routers.${STAGING_STACK_NAME}_app-http.entrypoints=http
+      - "traefik.http.routers.${STAGING_STACK_NAME}_app-http.rule=Host(`${STAGING_BASE_URL}`)"
+      - traefik.http.middlewares.${STAGING_STACK_NAME}_app-headers.headers.referrerPolicy=no-referrer
+      - traefik.http.middlewares.${STAGING_STACK_NAME}_app-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.${STAGING_STACK_NAME}_app-headers.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.${STAGING_STACK_NAME}_app-headers.headers.stsPreload=true
+      - traefik.http.middlewares.${STAGING_STACK_NAME}_app-headers.headers.customFrameOptionsValue=allowall
+      - traefik.http.middlewares.${STAGING_STACK_NAME}_app-headers.headers.customResponseHeaders.X-Frame-Options=allowall
+      - traefik.http.middlewares.${STAGING_STACK_NAME}_app-headers.headers.customResponseHeaders.Permissions-Policy=geolocation=(), microphone=(), camera=()
+
+      # HTTPS route
+      - traefik.http.routers.${STAGING_STACK_NAME}_app.entrypoints=https
+      - "traefik.http.routers.${STAGING_STACK_NAME}_app.rule=Host(`${STAGING_BASE_URL}`)"
+      - traefik.http.routers.${STAGING_STACK_NAME}_app.tls=true
+      # Service
+      - traefik.http.services.${STAGING_STACK_NAME}_app.loadbalancer.server.port=8000
+      # Classic Docker labels
+      - track=stable
+      - app.gitlab.com/env=staging
+    networks:
+      - traefik-net
+
+networks:
+  default:
+  traefik-net:
+    external: true

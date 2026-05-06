@@ -1,0 +1,124 @@
+# À adapter : registre GitLab, Portainer, variables CI, chemins d'image.
+image: docker:latest
+
+services:
+  - docker:dind
+
+variables:
+  DOCKER_DRIVER: overlay2
+  CI_APPLICATION_REPOSITORY: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG
+  CI_APPLICATION_TAG: $CI_COMMIT_SHA
+  CI_APPLICATION_PATH_SLUG: $CI_PROJECT_PATH_SLUG-$CI_COMMIT_REF_SLUG
+
+stages:
+  - build-staging
+  - staging
+  - build-production
+  - production
+
+before_script:
+  - export HTTP_PROXY=$http_proxy
+  - export HTTPS_PROXY=$https_proxy
+  - export http_proxy=$HTTP_PROXY
+  - export https_proxy=$HTTPS_PROXY
+  - |
+    setup_docker() {
+      if ! docker info &>/dev/null; then
+        if [ -z "$DOCKER_HOST" -a "$KUBERNETES_PORT" ]; then
+          export DOCKER_HOST='tcp://localhost:2375'
+        fi
+      fi
+    }
+    registry_login() {
+      if [[ -n "$CI_REGISTRY_USER" ]]; then
+        echo "Logging to GitLab Container Registry with CI credentials..."
+        docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+        echo ""
+      fi
+    }
+    setup_docker
+    registry_login
+
+build-staging:
+  stage: build-staging
+  script:
+    - docker login registry-gitlab.montpellier3m.fr
+    - setup_docker
+    - registry_login
+    - chmod 550 -R .
+    - cp .env.example .env
+    - sed -i "s|VITE_API_BASE_URL=.*|VITE_API_BASE_URL=$STAGING_API_BASE_URL|" .env
+    - docker build -t $CI_REGISTRY_IMAGE_DEVOPS/staging:$CI_APPLICATION_TAG
+      --build-arg HTTP_PROXY="$HTTP_PROXY"
+      --build-arg http_proxy="$http_proxy"
+      --build-arg HTTPS_PROXY="$HTTPS_PROXY"
+      --build-arg https_proxy="$https_proxy"
+      --build-arg FTP_PROXY="$FTP_PROXY"
+      --build-arg ftp_proxy="$ftp_proxy"
+      --build-arg NO_PROXY="$NO_PROXY"
+      --build-arg no_proxy="$no_proxy"
+      --build-arg CI_REGISTRY_IMAGE_DEVOPS="$CI_REGISTRY_IMAGE_DEVOPS"
+      -f Dockerfile .
+    - docker push $CI_REGISTRY_IMAGE_DEVOPS/staging:$CI_APPLICATION_TAG
+  only:
+    - master
+
+staging:
+  stage: staging
+  image: $DOCKER_IMG_PSU
+  variables:
+    STAGING_PORTAINER_URL: $STAGING_PORTAINER_URL
+    PORTAINER_ENDPOINT: $STAGING_PORTAINER_ENDPOINT
+    STACK_NAME: $STAGING_STACK_NAME
+    APPLICATION_STACK_FILE: $STAGING_APPLICATION_STACK_FILE
+    PORTAINER_USER: $STAGING_PORTAINER_USER
+    PORTAINER_PASSWORD: $STAGING_PORTAINER_PASSWORD
+  script:
+    - printenv
+    - registry_login
+    - export IMAGE_TAG=$CI_APPLICATION_TAG
+    - envsubst < $STAGING_APPLICATION_STACK_FILE > docker-compose.yml
+    - psu deploy --debug --endpoint "$PORTAINER_ENDPOINT" --url "$STAGING_PORTAINER_URL" --user "$PORTAINER_USER" --password "$PORTAINER_PASSWORD" --compose-file docker-compose.yml --name "$STACK_NAME" --verbose
+  environment:
+    name: staging
+    url: https://$STAGING_BASE_URL/
+  only:
+    - master
+
+build-production:
+  stage: build-production
+  script:
+    - docker login registry-gitlab.montpellier3m.fr
+    - setup_docker
+    - registry_login
+    - chmod 550 -R .
+    - cp .env.example .env
+    - sed -i "s|VITE_API_BASE_URL=.*|VITE_API_BASE_URL=$PRODUCTION_API_BASE_URL|" .env
+    - docker build -t $CI_REGISTRY_IMAGE_DEVOPS/production:$CI_APPLICATION_TAG --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg http_proxy="$http_proxy" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg https_proxy="$https_proxy" --build-arg FTP_PROXY="$FTP_PROXY" --build-arg ftp_proxy="$ftp_proxy" --build-arg NO_PROXY="$NO_PROXY" --build-arg no_proxy="$no_proxy" -f Dockerfile .
+    - docker push $CI_REGISTRY_IMAGE_DEVOPS/production:$CI_APPLICATION_TAG
+  only:
+    - master
+
+production:
+  stage: production
+  image: $DOCKER_IMG_PSU
+  variables:
+    PROD_PORTAINER_URL: $PRODUCTION_PROD_PORTAINER_URL
+    PORTAINER_ENDPOINT: $PRODUCTION_PORTAINER_ENDPOINT
+    STACK_NAME: $PRODUCTION_STACK_NAME
+    APPLICATION_STACK_FILE: $PRODUCTION_APPLICATION_STACK_FILE
+    PORTAINER_USER: $PRODUCTION_PORTAINER_USER
+    PORTAINER_PASSWORD: $PRODUCTION_PORTAINER_PASSWORD
+  script:
+    - registry_login
+    - export IMAGE_TAG=$CI_APPLICATION_TAG
+    - export HOST_RULE=$(echo "$PRODUCTION_BASE_URL" | sed 's/\([^,]*\)/`\1`/g')
+    - echo "HOST_RULE = ${HOST_RULE}"
+    - envsubst < $PRODUCTION_APPLICATION_STACK_FILE > docker-compose.yml
+    - psu deploy --debug --endpoint "$PORTAINER_ENDPOINT" --url "$PROD_PORTAINER_URL" --user "$PORTAINER_USER" --password "$PORTAINER_PASSWORD" --compose-file docker-compose.yml --name "$STACK_NAME" --verbose
+  environment:
+    name: production
+    url: https://$SPRODUCTION_BASE_URL/
+  only:
+    - master
+  when: manual

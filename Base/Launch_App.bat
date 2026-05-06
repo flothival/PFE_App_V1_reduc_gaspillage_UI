@@ -1,8 +1,8 @@
 @echo off
 setlocal
 
-rem Always run from this folder
-cd /d "%~dp0"
+rem Always run from the parent folder so "Base" is importable as a package
+cd /d "%~dp0.."
 
 rem Prefer repo-local venv if present
 if exist ".venv\Scripts\pythonw.exe" (

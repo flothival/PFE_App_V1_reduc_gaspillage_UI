@@ -1,0 +1,52 @@
+# Environment files
+.env
+*.env.local
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.env/
+.venv/
+env/
+venv/
+
+# Django artefacts
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+static/
+logs/
+
+# Debug log files
+debug_*.log
+
+# Python packaging outputs
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test artefacts and caches
+.coverage
+htmlcov/
+.pytest_cache/
+.cache/
+
+.idea/
+
+# macOS
+.DS_Store
+
+# Python
+*.pyc
+*.pyo
+*.pyd
+
+#perso : 
+CLAUDE.md 
+info.md   
+mdp.txt 

@@ -1,0 +1,39 @@
+version: "3.7"
+
+services:
+  app:
+    image: $CI_REGISTRY_IMAGE_DEVOPS/production:$IMAGE_TAG
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-net"
+      # HTTP route
+      - "traefik.http.routers.${PRODUCTION_STACK_NAME}_app-http.entrypoints=http"
+      - "traefik.http.routers.${PRODUCTION_STACK_NAME}_app-http.rule=Host(${HOST_RULE})"
+      - "traefik.http.routers.${PRODUCTION_STACK_NAME}_app-http.middlewares=${PRODUCTION_STACK_NAME}_app-headers"
+      # Middleware pour les headers
+      - "traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.referrerPolicy=no-referrer"
+      - "traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.customResponseHeaders.X-Frame-Options=ALLOWALL"
+      # ADDED
+      - "traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.customResponseHeaders.Content-Security-Policy=default-src 'self' *.montpellier.fr *.montpellier3m.fr; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src * data:; connect-src *; frame-ancestors 'self';"
+      - "traefik.http.middlewares.${PRODUCTION_STACK_NAME}_app-headers.headers.customResponseHeaders.Permissions-Policy=geolocation=(), microphone=(), camera=()"
+
+      # HTTPS route
+      - "traefik.http.routers.${PRODUCTION_STACK_NAME}_app.entrypoints=https"
+      - "traefik.http.routers.${PRODUCTION_STACK_NAME}_app.rule=Host(${HOST_RULE})"
+      - "traefik.http.routers.${PRODUCTION_STACK_NAME}_app.tls=true"
+      - "traefik.http.routers.${PRODUCTION_STACK_NAME}_app.middlewares=${PRODUCTION_STACK_NAME}_app-headers"
+      # Définition du service
+      - "traefik.http.services.${PRODUCTION_STACK_NAME}_app.loadbalancer.server.port=8000"
+      # Labels classiques Docker
+      - "track=stable"
+      - "app.gitlab.com/env=production"
+    networks:
+      - traefik-net
+
+networks:
+  default:
+  traefik-net:
+    external: true

@@ -1,0 +1,15 @@
+django~=5.0
+django-cors-headers~=4.0
+
+mozilla-django-oidc~=4.0
+django_python3_ldap==0.15.3
+
+djangorestframework~=3.0
+djangorestframework-simplejwt~=5.0
+
+python-dotenv~=1.0
+
+psycopg[binary]~=3.0
+
+gunicorn~=23.0
+uvicorn~=0.0
