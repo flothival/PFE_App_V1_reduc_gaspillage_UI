@@ -6,6 +6,13 @@ export const API_ENDPOINTS = {
     oidc: "/api/auth/oidc/",
     user: "/api/auth/user/",
   },
+  forecasting: {
+    list: "/api/forecasting/forecasts/",
+    detail: (id: number) => `/api/forecasting/forecasts/${id}/`,
+    rowUpdate: (forecastId: number, rowId: number) =>
+      `/api/forecasting/forecasts/${forecastId}/rows/${rowId}/`,
+    export: (id: number) => `/api/forecasting/forecasts/${id}/export/`,
+  },
 } as const;
 
 export function normalizeApiPath(path: string): string {

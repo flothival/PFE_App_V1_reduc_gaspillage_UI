@@ -22,7 +22,9 @@ CORS_ALLOWED_ORIGINS = [
 ] + [
     f"https://{host}" if not host.startswith("http") else host
     for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",")
-]
+] + [URL_FRONT]
+
+CORS_ALLOW_CREDENTIALS = True
 
 INSTALLED_APPS = [
     'django.contrib.admin',
