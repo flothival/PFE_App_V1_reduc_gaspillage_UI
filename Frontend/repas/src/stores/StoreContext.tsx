@@ -1,8 +1,9 @@
 import { createContext, useContext } from "react";
 import { appStore } from "./AppStore";
 import { authStore } from "@/features/auth/store/AuthStore";
+import { forecastStore } from "@/features/forecasting/store/ForecastStore";
 
-const stores = { appStore, authStore };
+const stores = { appStore, authStore, forecastStore };
 
 const StoreContext = createContext(stores);
 
