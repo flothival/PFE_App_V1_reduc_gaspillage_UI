@@ -87,8 +87,18 @@ class ForecastViewSet(viewsets.ModelViewSet):
         make DRF look for a non-existent renderer and raise a misleading 404.
 
         Mirrors the legacy Tkinter export : 4 columns (DATE, ECOLE, A PREPARER,
-        Supplement Humain), sorted by date then school. CSV uses utf-8-sig so
-        Excel opens it without mojibake.
+        Supplement Humain). CSV uses utf-8-sig so Excel opens it without mojibake.
+
+        Optional filtering / sorting query params — used to export the same
+        subset the user sees on the front (search + date range + sort) :
+            ?school=alain            (case-insensitive `icontains` on school)
+            ?date_from=2025-11-03    (rows where date >= value)
+            ?date_to=2025-11-10      (rows where date <= value)
+            ?sort_by=date|school     (column to sort by ; default Meta.ordering)
+            ?sort_dir=asc|desc       (direction ; default asc, ignored if no sort_by)
+
+        Filenames carry a `_filtre` suffix when any filter is applied, so the
+        user can spot non-default exports in their downloads.
         """
         fmt = request.query_params.get("type", "csv").lower()
         if fmt not in ("csv", "xlsx"):
@@ -96,10 +106,30 @@ class ForecastViewSet(viewsets.ModelViewSet):
                 {"type": "Type invalide. Utilisez 'csv' ou 'xlsx'."}
             )
 
+        school = request.query_params.get("school", "").strip()
+        date_from = self._parse_export_date(request.query_params.get("date_from"), "date_from")
+        date_to = self._parse_export_date(request.query_params.get("date_to"), "date_to")
+        sort_by = request.query_params.get("sort_by", "").strip()
+        sort_dir = request.query_params.get("sort_dir", "asc").strip().lower()
+
+        if sort_by and sort_by not in ("date", "school"):
+            raise ValidationError({"sort_by": "Doit être 'date' ou 'school'."})
+        if sort_dir not in ("asc", "desc"):
+            raise ValidationError({"sort_dir": "Doit être 'asc' ou 'desc'."})
+
         forecast = self.get_object()
-        rows = forecast.rows.all().values(
-            "date", "school", "final_amount", "supplement_humain"
-        )
+        qs = forecast.rows.all()
+        if school:
+            qs = qs.filter(school__icontains=school)
+        if date_from:
+            qs = qs.filter(date__gte=date_from)
+        if date_to:
+            qs = qs.filter(date__lte=date_to)
+        if sort_by:
+            qs = qs.order_by(f"{'' if sort_dir == 'asc' else '-'}{sort_by}")
+        # Sinon, le Meta.ordering = ["date", "school"] s'applique par défaut.
+
+        rows = qs.values("date", "school", "final_amount", "supplement_humain")
         df = pd.DataFrame.from_records(rows)
         if df.empty:
             df = pd.DataFrame(columns=["date", "school", "final_amount", "supplement_humain"])
@@ -115,10 +145,11 @@ class ForecastViewSet(viewsets.ModelViewSet):
         df["DATE"] = pd.to_datetime(df["DATE"]).dt.date.astype(str)
         df["A PREPARER"] = df["A PREPARER"].fillna(0).astype(int)
         df["Supplement Humain"] = df["Supplement Humain"].fillna(0).astype(int)
-        df = df.sort_values(["DATE", "ECOLE"]).reset_index(drop=True)
 
+        is_filtered = bool(school or date_from or date_to or sort_by)
+        suffix = "_filtre" if is_filtered else ""
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        base_name = f"previsions_repas_{forecast.pk}_{stamp}"
+        base_name = f"previsions_repas_{forecast.pk}{suffix}_{stamp}"
 
         if fmt == "csv":
             content = df.to_csv(index=False).encode("utf-8-sig")
@@ -135,3 +166,15 @@ class ForecastViewSet(viewsets.ModelViewSet):
         )
         response["Content-Disposition"] = f'attachment; filename="{base_name}.xlsx"'
         return response
+
+    @staticmethod
+    def _parse_export_date(raw: str | None, field: str) -> str:
+        """Valide qu'une date `YYYY-MM-DD` est bien formée, renvoie "" si vide."""
+        value = (raw or "").strip()
+        if not value:
+            return ""
+        try:
+            datetime.strptime(value, "%Y-%m-%d")
+        except ValueError as exc:
+            raise ValidationError({field: "Format attendu : YYYY-MM-DD."}) from exc
+        return value

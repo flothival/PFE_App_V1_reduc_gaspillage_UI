@@ -7,12 +7,28 @@ import {
   ArrowLeft,
   ArrowUp,
   ArrowUpDown,
+  Download,
+  FileSpreadsheet,
+  FileText,
   Loader2,
   RefreshCw,
   Search,
   X,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "@/hooks/use-toast";
+import type { ExportType } from "@/features/forecasting/model/types";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -100,6 +116,8 @@ const ForecastDetailContent = observer(function ForecastDetailContent({
   onRefresh: () => void;
 }) {
   const { forecastStore } = useStores();
+  const allRows = forecast.rows ?? [];
+  const filters = useTableFilters(allRows);
 
   return (
     <>
@@ -110,15 +128,24 @@ const ForecastDetailContent = observer(function ForecastDetailContent({
           </h1>
           <ForecastStatusBadge status={forecast.status} />
         </div>
-        {forecast.status === "pending" && (
-          <Button variant="outline" size="sm" onClick={onRefresh} disabled={forecastStore.isLoadingDetail}>
-            <RefreshCw
-              className={cn("size-4", forecastStore.isLoadingDetail && "animate-spin")}
-              aria-hidden
+        <div className="flex items-center gap-2">
+          {forecast.status === "pending" && (
+            <Button variant="outline" size="sm" onClick={onRefresh} disabled={forecastStore.isLoadingDetail}>
+              <RefreshCw
+                className={cn("size-4", forecastStore.isLoadingDetail && "animate-spin")}
+                aria-hidden
+              />
+              Rafraîchir
+            </Button>
+          )}
+          {forecast.status === "done" && (
+            <ExportButton
+              forecastId={forecast.id}
+              filters={filters}
+              totalCount={allRows.length}
             />
-            Rafraîchir
-          </Button>
-        )}
+          )}
+        </div>
       </header>
 
       <MetadataCard forecast={forecast} />
@@ -128,11 +155,243 @@ const ForecastDetailContent = observer(function ForecastDetailContent({
       ) : forecast.status === "error" ? (
         <ErrorState message={forecast.error_message ?? "Une erreur est survenue lors de la génération."} />
       ) : (
-        <RowsTable rows={forecast.rows ?? []} />
+        <RowsTable allRows={allRows} filters={filters} />
       )}
     </>
   );
 });
+
+/* ============================================================
+ * Bouton Export (dropdown CSV / XLSX)
+ * ============================================================ */
+
+type ExportScope = "all" | "filtered";
+
+const ExportButton = observer(function ExportButton({
+  forecastId,
+  filters,
+  totalCount,
+}: {
+  forecastId: number;
+  filters: TableFilters;
+  totalCount: number;
+}) {
+  const { forecastStore } = useStores();
+  const [open, setOpen] = useState(false);
+  const [scope, setScope] = useState<ExportScope>("all");
+  const [format, setFormat] = useState<ExportType>("csv");
+  const [isBusy, setIsBusy] = useState(false);
+
+  const { isFiltered, filterSummary, visibleRows } = filters;
+
+  // Pré-sélectionne "filtré" quand on ouvre la modale avec un filtre actif.
+  useEffect(() => {
+    if (open) setScope(isFiltered ? "filtered" : "all");
+  }, [open, isFiltered]);
+
+  const handleConfirm = async () => {
+    setIsBusy(true);
+    try {
+      const exportFilters =
+        scope === "filtered"
+          ? {
+              school: filters.search.trim() || undefined,
+              dateFrom: filters.dateFrom || undefined,
+              dateTo: filters.dateTo || undefined,
+              sortBy: filters.sort?.column,
+              sortDir: filters.sort?.direction,
+            }
+          : undefined;
+
+      const ok = await forecastStore.exportToFile(forecastId, format, exportFilters);
+      if (!ok) {
+        toast({
+          variant: "destructive",
+          title: "Échec de l'export",
+          description: forecastStore.error ?? "Une erreur est survenue.",
+        });
+        return;
+      }
+
+      toast({
+        title: "Export prêt",
+        description: `Téléchargement du fichier .${format} démarré.`,
+      });
+      setOpen(false);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Download aria-hidden />
+          Exporter
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Exporter la prévision</DialogTitle>
+          <DialogDescription>
+            Choisissez le périmètre des données et le format du fichier.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-5 py-2">
+          {/* Périmètre */}
+          <div>
+            <Label className="mb-2 block text-sm font-medium">Périmètre</Label>
+            <RadioGroup
+              value={scope}
+              onValueChange={(v) => setScope(v as ExportScope)}
+              className="gap-2"
+            >
+              <ScopeOption
+                value="all"
+                checked={scope === "all"}
+                title="Tout"
+                description={`Toutes les ${totalCount.toLocaleString("fr-FR")} lignes de la prévision.`}
+              />
+              <ScopeOption
+                value="filtered"
+                checked={scope === "filtered"}
+                disabled={!isFiltered}
+                title={isFiltered ? "Avec les filtres actuels" : "Avec les filtres actuels (aucun)"}
+                description={
+                  isFiltered ? (
+                    <>
+                      <ul className="space-y-0.5">
+                        {filterSummary.map((s, i) => (
+                          <li key={i}>· {s}</li>
+                        ))}
+                      </ul>
+                      <p className="pt-1 text-xs font-medium text-foreground">
+                        {visibleRows.length.toLocaleString("fr-FR")} ligne
+                        {visibleRows.length > 1 ? "s" : ""} après filtre.
+                      </p>
+                    </>
+                  ) : (
+                    "Aucun filtre actif sur le tableau."
+                  )
+                }
+              />
+            </RadioGroup>
+          </div>
+
+          <Separator />
+
+          {/* Format */}
+          <div>
+            <Label className="mb-2 block text-sm font-medium">Format</Label>
+            <RadioGroup
+              value={format}
+              onValueChange={(v) => setFormat(v as ExportType)}
+              className="grid grid-cols-2 gap-2"
+            >
+              <FormatOption
+                value="csv"
+                checked={format === "csv"}
+                icon={FileText}
+                title="CSV"
+                hint=".csv"
+              />
+              <FormatOption
+                value="xlsx"
+                checked={format === "xlsx"}
+                icon={FileSpreadsheet}
+                title="Excel"
+                hint=".xlsx"
+              />
+            </RadioGroup>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={isBusy}>
+            Annuler
+          </Button>
+          <Button onClick={handleConfirm} disabled={isBusy}>
+            {isBusy && <Loader2 className="animate-spin" aria-hidden />}
+            Exporter
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+});
+
+function ScopeOption({
+  value,
+  checked,
+  title,
+  description,
+  disabled,
+}: {
+  value: string;
+  checked: boolean;
+  title: string;
+  description: React.ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <Label
+      htmlFor={`scope-${value}`}
+      data-disabled={disabled || undefined}
+      className={cn(
+        "flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm transition-colors",
+        checked ? "border-primary bg-primary/5" : "border-border hover:bg-accent/40",
+        disabled && "cursor-not-allowed opacity-50",
+      )}
+    >
+      <RadioGroupItem
+        id={`scope-${value}`}
+        value={value}
+        disabled={disabled}
+        className="mt-0.5"
+      />
+      <div className="flex flex-1 flex-col gap-0.5">
+        <span className="font-medium text-foreground">{title}</span>
+        <span className="text-xs text-muted-foreground">{description}</span>
+      </div>
+    </Label>
+  );
+}
+
+function FormatOption({
+  value,
+  checked,
+  icon: Icon,
+  title,
+  hint,
+}: {
+  value: string;
+  checked: boolean;
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <Label
+      htmlFor={`format-${value}`}
+      className={cn(
+        "flex cursor-pointer items-center gap-3 rounded-md border p-3 text-sm transition-colors",
+        checked ? "border-primary bg-primary/5" : "border-border hover:bg-accent/40",
+      )}
+    >
+      <RadioGroupItem id={`format-${value}`} value={value} />
+      <Icon
+        className={cn("size-4", checked ? "text-primary" : "text-muted-foreground")}
+        aria-hidden
+      />
+      <div className="flex flex-1 flex-col leading-tight">
+        <span className="font-medium text-foreground">{title}</span>
+        <span className="text-xs text-muted-foreground">{hint}</span>
+      </div>
+    </Label>
+  );
+}
 
 /* ============================================================
  * Bandeau métadonnées
@@ -202,7 +461,7 @@ function ErrorState({ message }: { message: string }) {
  * En dessous, on rend la totalité du tableau (plus simple, fonctionne pour
  * Ctrl+F navigateur, sélection texte, etc.).
  */
-const VIRTUALIZE_THRESHOLD = 2000;
+const VIRTUALIZE_THRESHOLD = 10;
 
 /** Hauteur estimée d'une ligne (px) — recalibrer si on change la densité de la table. */
 const ESTIMATED_ROW_HEIGHT = 49;
@@ -219,21 +478,41 @@ type SortProps = {
   onToggle: (col: SortColumn) => void;
 };
 
-function RowsTable({ rows: allRows }: { rows: ForecastRow[] }) {
+type TableFilters = {
+  search: string;
+  setSearch: (v: string) => void;
+  dateFrom: string;
+  setDateFrom: (v: string) => void;
+  dateTo: string;
+  setDateTo: (v: string) => void;
+  sort: SortState;
+  toggleSort: (col: SortColumn) => void;
+  reset: () => void;
+  visibleRows: ForecastRow[];
+  isFiltered: boolean;
+  filterSummary: string[];
+};
+
+/**
+ * Hook qui encapsule l'état des filtres + tri du tableau et calcule les
+ * `visibleRows` correspondantes. Mutualisé entre la table elle-même
+ * et le bouton d'export (qui a besoin du même périmètre).
+ */
+function useTableFilters(allRows: ForecastRow[]): TableFilters {
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [sort, setSort] = useState<SortState>(null);
 
-  const handleToggleSort = (col: SortColumn) => {
+  const toggleSort = (col: SortColumn) => {
     setSort((current) => {
       if (current?.column !== col) return { column: col, direction: "asc" };
       if (current.direction === "asc") return { column: col, direction: "desc" };
-      return null; // 3ᵉ clic → on remet l'ordre d'origine
+      return null; // 3ᵉ clic → ordre d'origine
     });
   };
 
-  const handleReset = () => {
+  const reset = () => {
     setSearch("");
     setDateFrom("");
     setDateTo("");
@@ -242,18 +521,12 @@ function RowsTable({ rows: allRows }: { rows: ForecastRow[] }) {
 
   const visibleRows = useMemo(() => {
     let result = allRows;
-
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       result = result.filter((r) => r.school.toLowerCase().includes(q));
     }
-    if (dateFrom) {
-      result = result.filter((r) => r.date >= dateFrom);
-    }
-    if (dateTo) {
-      result = result.filter((r) => r.date <= dateTo);
-    }
-
+    if (dateFrom) result = result.filter((r) => r.date >= dateFrom);
+    if (dateTo) result = result.filter((r) => r.date <= dateTo);
     if (sort) {
       const sorted = [...result];
       sorted.sort((a, b) => {
@@ -265,10 +538,48 @@ function RowsTable({ rows: allRows }: { rows: ForecastRow[] }) {
       });
       result = sorted;
     }
-
     return result;
   }, [allRows, search, dateFrom, dateTo, sort]);
 
+  const isFiltered = !!search.trim() || !!dateFrom || !!dateTo || !!sort;
+
+  const filterSummary = useMemo(() => {
+    const items: string[] = [];
+    if (search.trim()) items.push(`Recherche école : « ${search.trim()} »`);
+    if (dateFrom && dateTo) {
+      items.push(`Période : ${formatDateOnly(dateFrom)} → ${formatDateOnly(dateTo)}`);
+    } else if (dateFrom) {
+      items.push(`Période : à partir du ${formatDateOnly(dateFrom)}`);
+    } else if (dateTo) {
+      items.push(`Période : jusqu'au ${formatDateOnly(dateTo)}`);
+    }
+    if (sort) {
+      const col = sort.column === "date" ? "Date" : "École";
+      const dir = sort.direction === "asc" ? "croissant" : "décroissant";
+      items.push(`Tri : ${col} (${dir})`);
+    }
+    return items;
+  }, [search, dateFrom, dateTo, sort]);
+
+  return {
+    search, setSearch,
+    dateFrom, setDateFrom,
+    dateTo, setDateTo,
+    sort, toggleSort,
+    reset,
+    visibleRows,
+    isFiltered,
+    filterSummary,
+  };
+}
+
+function RowsTable({
+  allRows,
+  filters,
+}: {
+  allRows: ForecastRow[];
+  filters: TableFilters;
+}) {
   if (allRows.length === 0) {
     return (
       <Card>
@@ -279,9 +590,9 @@ function RowsTable({ rows: allRows }: { rows: ForecastRow[] }) {
     );
   }
 
-  const isFiltered = !!search.trim() || !!dateFrom || !!dateTo || !!sort;
+  const { visibleRows, isFiltered } = filters;
   const shouldVirtualize = visibleRows.length > VIRTUALIZE_THRESHOLD;
-  const sortProps: SortProps = { sort, onToggle: handleToggleSort };
+  const sortProps: SortProps = { sort: filters.sort, onToggle: filters.toggleSort };
 
   return (
     <Card className="overflow-hidden">
@@ -295,14 +606,14 @@ function RowsTable({ rows: allRows }: { rows: ForecastRow[] }) {
 
       <CardContent>
         <TableToolbar
-          search={search}
-          onSearchChange={setSearch}
-          dateFrom={dateFrom}
-          onDateFromChange={setDateFrom}
-          dateTo={dateTo}
-          onDateToChange={setDateTo}
+          search={filters.search}
+          onSearchChange={filters.setSearch}
+          dateFrom={filters.dateFrom}
+          onDateFromChange={filters.setDateFrom}
+          dateTo={filters.dateTo}
+          onDateToChange={filters.setDateTo}
           isFiltered={isFiltered}
-          onReset={handleReset}
+          onReset={filters.reset}
           visibleCount={visibleRows.length}
           totalCount={allRows.length}
           virtualized={shouldVirtualize}
@@ -706,3 +1017,4 @@ function formatDelta(n: number): string {
   const rounded = n.toFixed(1);
   return n > 0 ? `+${rounded}` : rounded;
 }
+

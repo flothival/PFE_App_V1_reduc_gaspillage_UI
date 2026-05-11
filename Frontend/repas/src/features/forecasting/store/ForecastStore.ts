@@ -8,6 +8,7 @@ import {
   getForecast,
   listForecasts,
   updateRowSupplement,
+  type ExportFilters,
 } from "@/features/forecasting/api/forecastApi";
 import type {
   CreateForecastInput,
@@ -176,14 +177,24 @@ class ForecastStore {
     }
   }
 
-  async exportToFile(id: number, type: ExportType): Promise<boolean> {
+  async exportToFile(
+    id: number,
+    type: ExportType,
+    filters?: ExportFilters,
+  ): Promise<boolean> {
     this.isExporting = true;
     this.error = null;
     try {
-      const blob = await exportForecast(id, type);
+      const blob = await exportForecast(id, type, filters);
+      const isFiltered = !!(
+        filters?.school ||
+        filters?.dateFrom ||
+        filters?.dateTo ||
+        filters?.sortBy
+      );
       const filename =
         extractFilenameFromContentDisposition(undefined) ??
-        `previsions_repas_${id}.${type}`;
+        `previsions_repas_${id}${isFiltered ? "_filtre" : ""}.${type}`;
       triggerBrowserDownload(blob, filename);
       runInAction(() => {
         this.isExporting = false;

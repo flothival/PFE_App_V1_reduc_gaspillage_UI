@@ -61,9 +61,34 @@ export async function deleteForecast(id: number): Promise<void> {
   await api.delete(API_ENDPOINTS.forecasting.detail(id));
 }
 
-export async function exportForecast(id: number, type: ExportType): Promise<Blob> {
+export type ExportFilters = {
+  /** Recherche sur le nom d'école (icontains côté back). */
+  school?: string;
+  /** Borne basse de date (YYYY-MM-DD, incluse). */
+  dateFrom?: string;
+  /** Borne haute de date (YYYY-MM-DD, incluse). */
+  dateTo?: string;
+  /** Colonne de tri ; null/undefined laisse l'ordre par défaut (date asc, école asc). */
+  sortBy?: "date" | "school";
+  /** Direction de tri ; ignoré si `sortBy` absent. */
+  sortDir?: "asc" | "desc";
+};
+
+export async function exportForecast(
+  id: number,
+  type: ExportType,
+  filters?: ExportFilters,
+): Promise<Blob> {
+  const params: Record<string, string> = { type };
+  if (filters?.school) params.school = filters.school;
+  if (filters?.dateFrom) params.date_from = filters.dateFrom;
+  if (filters?.dateTo) params.date_to = filters.dateTo;
+  if (filters?.sortBy) {
+    params.sort_by = filters.sortBy;
+    params.sort_dir = filters.sortDir ?? "asc";
+  }
   const { data } = await api.get<Blob>(API_ENDPOINTS.forecasting.export(id), {
-    params: { type },
+    params,
     responseType: "blob",
   });
   return data;
