@@ -1,0 +1,1 @@
+export { ForecastDetailPage } from "./ForecastDetailPage";
