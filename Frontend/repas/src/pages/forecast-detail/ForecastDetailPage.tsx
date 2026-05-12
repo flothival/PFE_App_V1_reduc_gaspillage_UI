@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { observer } from "mobx-react-lite";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowLeft,
   ArrowUp,
@@ -13,8 +14,20 @@ import {
   Loader2,
   RefreshCw,
   Search,
+  Trash2,
   X,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +63,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ForecastStatusBadge } from "@/features/forecasting/components/ForecastStatusBadge";
+import { forecastDisplayTitle } from "@/features/forecasting/model/types";
 import type {
   Forecast,
   ForecastRow,
@@ -71,6 +85,17 @@ export const ForecastDetailPage = observer(function ForecastDetailPage() {
     if (!idIsValid) return;
     void forecastStore.fetchDetail(id);
   }, [id, idIsValid, forecastStore]);
+
+  // Polling auto tant que la prévision est en cours de génération côté back.
+  // Refresh toutes les 3s, s'arrête dès que le statut passe à done ou error.
+  const isPending = currentForecast?.status === "pending";
+  useEffect(() => {
+    if (!idIsValid || !isPending) return;
+    const intervalId = window.setInterval(() => {
+      void forecastStore.fetchDetail(id);
+    }, POLLING_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
+  }, [id, idIsValid, isPending, forecastStore]);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6 md:p-8">
@@ -122,9 +147,9 @@ const ForecastDetailContent = observer(function ForecastDetailContent({
   return (
     <>
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Prévision #{forecast.id}
+        <div className="flex min-w-0 items-center gap-3">
+          <h1 className="truncate text-2xl font-semibold tracking-tight">
+            {forecastDisplayTitle(forecast)}
           </h1>
           <ForecastStatusBadge status={forecast.status} />
         </div>
@@ -145,6 +170,7 @@ const ForecastDetailContent = observer(function ForecastDetailContent({
               totalCount={allRows.length}
             />
           )}
+          <DeleteForecastButton forecast={forecast} />
         </div>
       </header>
 
@@ -158,6 +184,84 @@ const ForecastDetailContent = observer(function ForecastDetailContent({
         <RowsTable allRows={allRows} filters={filters} />
       )}
     </>
+  );
+});
+
+/* ============================================================
+ * Bouton Supprimer (AlertDialog de confirmation)
+ * ============================================================ */
+
+const DeleteForecastButton = observer(function DeleteForecastButton({
+  forecast,
+}: {
+  forecast: Forecast;
+}) {
+  const { forecastStore } = useStores();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  const isDeleting = forecastStore.isDeletingId === forecast.id;
+  const label = forecastDisplayTitle(forecast);
+
+  const handleConfirm = async () => {
+    const ok = await forecastStore.remove(forecast.id);
+    if (!ok) {
+      toast({
+        variant: "destructive",
+        title: "Suppression impossible",
+        description: forecastStore.error ?? "Une erreur est survenue.",
+      });
+      return;
+    }
+    toast({
+      title: "Prévision supprimée",
+      description: `« ${label} » a été supprimée.`,
+    });
+    setOpen(false);
+    navigate(PATHS.FORECASTS);
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <Button variant="destructive" size="sm" disabled={isDeleting}>
+          {isDeleting ? (
+            <Loader2 className="animate-spin" aria-hidden />
+          ) : (
+            <Trash2 aria-hidden />
+          )}
+          Supprimer
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent className="border-2 border-destructive">
+        <AlertDialogHeader>
+          <div className="mb-1 inline-flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+            <AlertTriangle className="size-6" aria-hidden />
+          </div>
+          <AlertDialogTitle className="text-destructive">
+            Supprimer cette prévision ?
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            « {label} » et toutes ses lignes seront définitivement supprimées.
+            Cette action est irréversible.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            onClick={(e) => {
+              e.preventDefault();
+              void handleConfirm();
+            }}
+            disabled={isDeleting}
+          >
+            {isDeleting && <Loader2 className="animate-spin" aria-hidden />}
+            Supprimer
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 });
 
@@ -469,6 +573,9 @@ const ESTIMATED_ROW_HEIGHT = 49;
 /** Nombre de colonnes du tableau — utilisé pour les `colSpan` des spacers virtualisés. */
 const COLUMN_COUNT = 7;
 
+/** Intervalle de polling (ms) pour les prévisions au statut `pending`. */
+const POLLING_INTERVAL_MS = 3000;
+
 type SortColumn = "date" | "school";
 type SortDirection = "asc" | "desc";
 type SortState = { column: SortColumn; direction: SortDirection } | null;
@@ -583,8 +690,15 @@ function RowsTable({
   if (allRows.length === 0) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-sm text-muted-foreground">
-          Aucune ligne de prédiction.
+        <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
+          <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <FileText className="size-5" aria-hidden />
+          </div>
+          <p className="text-sm font-medium">Aucune ligne de prédiction</p>
+          <p className="max-w-sm text-xs text-muted-foreground">
+            Cette prévision ne contient pas de données. Vérifiez le fichier de
+            réservations futures utilisé pour sa génération.
+          </p>
         </CardContent>
       </Card>
     );
@@ -622,8 +736,20 @@ function RowsTable({
 
       <CardContent className="p-0">
         {visibleRows.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">
-            Aucune ligne ne correspond aux filtres.
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <Search className="size-5" aria-hidden />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <p className="text-sm font-medium">Aucun résultat</p>
+              <p className="text-xs text-muted-foreground">
+                Aucune ligne ne correspond aux filtres actifs.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={filters.reset}>
+              <X aria-hidden />
+              Réinitialiser les filtres
+            </Button>
           </div>
         ) : shouldVirtualize ? (
           <VirtualizedRowsBody rows={visibleRows} sortProps={sortProps} />
@@ -664,6 +790,21 @@ function TableToolbar({
   totalCount: number;
   virtualized: boolean;
 }) {
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Raccourci Ctrl+K / Cmd+K → focus la barre de recherche.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-3">
@@ -673,13 +814,20 @@ function TableToolbar({
             aria-hidden
           />
           <Input
+            ref={searchInputRef}
             type="search"
             placeholder="Rechercher une école…"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-8"
+            className="pl-8 pr-14"
             aria-label="Rechercher une école"
           />
+          <kbd
+            className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 select-none items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-flex"
+            aria-hidden
+          >
+            Ctrl K
+          </kbd>
         </div>
 
         <div className="flex items-end gap-2">

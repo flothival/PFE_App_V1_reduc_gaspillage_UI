@@ -38,10 +38,24 @@ export async function createForecast(input: CreateForecastInput): Promise<Foreca
   formData.append("history_file", input.historyFile);
   formData.append("future_file", input.futureFile);
   formData.append("stock_tampon", String(input.stockTampon));
+  if (input.title && input.title.trim()) {
+    formData.append("title", input.title.trim());
+  }
 
   const { data } = await api.post<Forecast>(API_ENDPOINTS.forecasting.list, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+  return data;
+}
+
+export async function renameForecast(
+  id: number,
+  title: string,
+): Promise<Forecast> {
+  const { data } = await api.patch<Forecast>(
+    API_ENDPOINTS.forecasting.detail(id),
+    { title: title.trim() },
+  );
   return data;
 }
 
@@ -74,11 +88,17 @@ export type ExportFilters = {
   sortDir?: "asc" | "desc";
 };
 
+export type ExportResult = {
+  blob: Blob;
+  /** Nom de fichier extrait du header `Content-Disposition` côté back, ou `null` si absent. */
+  filename: string | null;
+};
+
 export async function exportForecast(
   id: number,
   type: ExportType,
   filters?: ExportFilters,
-): Promise<Blob> {
+): Promise<ExportResult> {
   const params: Record<string, string> = { type };
   if (filters?.school) params.school = filters.school;
   if (filters?.dateFrom) params.date_from = filters.dateFrom;
@@ -87,11 +107,15 @@ export async function exportForecast(
     params.sort_by = filters.sortBy;
     params.sort_dir = filters.sortDir ?? "asc";
   }
-  const { data } = await api.get<Blob>(API_ENDPOINTS.forecasting.export(id), {
+  const response = await api.get<Blob>(API_ENDPOINTS.forecasting.export(id), {
     params,
     responseType: "blob",
   });
-  return data;
+  const contentDisposition = response.headers["content-disposition"];
+  const filename = extractFilenameFromContentDisposition(
+    typeof contentDisposition === "string" ? contentDisposition : undefined,
+  );
+  return { blob: response.data, filename };
 }
 
 export function extractFilenameFromContentDisposition(

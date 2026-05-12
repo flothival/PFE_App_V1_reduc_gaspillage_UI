@@ -3,6 +3,7 @@ from .forecast_serializer import (
     ForecastCreateSerializer,
     ForecastDetailSerializer,
     ForecastListSerializer,
+    ForecastUpdateSerializer,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "ForecastCreateSerializer",
     "ForecastDetailSerializer",
     "ForecastListSerializer",
+    "ForecastUpdateSerializer",
 ]

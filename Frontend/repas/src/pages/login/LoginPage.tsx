@@ -16,6 +16,7 @@ import { useStores } from "@/stores/StoreContext";
 import { getOidcUserManager, toastAuthError } from "@/lib/auth";
 import { PATHS } from "@/routes/paths";
 import { LoginMarketingPanel } from "@/pages/login/components/LoginMarketingPanel";
+import { BrandLogo } from "@/components/branding/BrandLogo";
 
 export const LoginPage = observer(function LoginPage() {
   const { authStore } = useStores();
@@ -55,8 +56,9 @@ export const LoginPage = observer(function LoginPage() {
   return (
     <div className={cn("flex min-h-screen flex-col items-center justify-center bg-muted p-4 sm:p-6 md:p-10")}>
       <div className="w-full max-w-sm md:max-w-4xl">
+        <div className="md:grid md:grid-cols-[1fr_44%] md:items-stretch md:gap-3">
         <Card className="h-auto overflow-hidden py-0 shadow-md">
-          <CardContent className="grid h-auto gap-0 p-0 md:grid-cols-2 md:items-stretch">
+          <CardContent className="p-0">
             <form
               className={cn(
                 "flex h-auto flex-col px-6 py-7 sm:px-7 sm:py-8 md:px-9 md:py-9",
@@ -65,9 +67,14 @@ export const LoginPage = observer(function LoginPage() {
               onSubmit={handleSubmit}
             >
               <FieldGroup className="gap-5">
-                <div className="flex flex-col gap-1 text-center sm:text-left">
-                  <h1 className="text-2xl font-semibold tracking-tight text-foreground">Connexion</h1>
-                  <p className="text-sm text-muted-foreground">SSO ou identifiant interne</p>
+                <div className="flex flex-col gap-3">
+                  <div className="md:hidden">
+                    <BrandLogo variant="compact" tone="color" />
+                  </div>
+                  <div className="flex flex-col gap-1 text-center sm:text-left">
+                    <h1 className="text-2xl font-semibold tracking-tight text-foreground">Connexion</h1>
+                    <p className="text-sm text-muted-foreground">SSO ou identifiant interne</p>
+                  </div>
                 </div>
 
                 <Field>
@@ -134,9 +141,10 @@ export const LoginPage = observer(function LoginPage() {
               </FieldGroup>
             </form>
 
-            <LoginMarketingPanel />
-          </CardContent>
+            </CardContent>
         </Card>
+        <LoginMarketingPanel />
+        </div>
       </div>
     </div>
   );

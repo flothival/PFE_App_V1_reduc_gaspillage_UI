@@ -26,6 +26,11 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
+# Exposer l'en-tête Content-Disposition au front pour qu'il puisse récupérer le
+# nom de fichier généré par le back (cf. ForecastViewSet.export — inclut un
+# timestamp + suffixe `_filtre` qu'on veut conserver côté navigateur).
+CORS_EXPOSE_HEADERS = ["Content-Disposition"]
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

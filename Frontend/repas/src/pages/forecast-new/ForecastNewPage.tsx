@@ -49,6 +49,7 @@ export const ForecastNewPage = observer(function ForecastNewPage() {
   const { forecastStore } = useStores();
   const navigate = useNavigate();
 
+  const [title, setTitle] = useState<string>("");
   const [historyFile, setHistoryFile] = useState<File | null>(null);
   const [futureFile, setFutureFile] = useState<File | null>(null);
   const [stockTampon, setStockTampon] = useState<string>("0");
@@ -83,6 +84,7 @@ export const ForecastNewPage = observer(function ForecastNewPage() {
       historyFile: historyFile!,
       futureFile: futureFile!,
       stockTampon: Number(stockTampon),
+      title: title.trim() || undefined,
     });
     if (id !== null) {
       navigate(forecastDetailPath(id));
@@ -135,7 +137,9 @@ export const ForecastNewPage = observer(function ForecastNewPage() {
             {apiError && (
               <Alert variant="destructive" className="mb-5">
                 <AlertTitle>Erreur lors de la génération</AlertTitle>
-                <AlertDescription>{apiError}</AlertDescription>
+                <AlertDescription className="whitespace-pre-line">
+                  {apiError}
+                </AlertDescription>
               </Alert>
             )}
 
@@ -147,6 +151,25 @@ export const ForecastNewPage = observer(function ForecastNewPage() {
               className={isCreating ? "pointer-events-none opacity-70" : undefined}
             >
               <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="forecast-title">
+                    Titre de la prévision <span className="text-muted-foreground">(optionnel)</span>
+                  </FieldLabel>
+                  <Input
+                    id="forecast-title"
+                    name="title"
+                    type="text"
+                    maxLength={255}
+                    placeholder="Ex. Cantines Montpellier - Décembre 2025"
+                    disabled={isCreating}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
+                  <FieldDescription>
+                    Si vide, la prévision sera nommée automatiquement « Prévision N ».
+                  </FieldDescription>
+                </Field>
+
                 <Field data-invalid={!!errors.historyFile || undefined}>
                   <FieldLabel htmlFor="history-file">
                     Historique des repas (.csv)

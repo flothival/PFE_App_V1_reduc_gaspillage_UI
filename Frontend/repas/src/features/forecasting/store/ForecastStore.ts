@@ -4,9 +4,9 @@ import {
   createForecast,
   deleteForecast,
   exportForecast,
-  extractFilenameFromContentDisposition,
   getForecast,
   listForecasts,
+  renameForecast,
   updateRowSupplement,
   type ExportFilters,
 } from "@/features/forecasting/api/forecastApi";
@@ -37,6 +37,8 @@ class ForecastStore {
   isUpdatingRowId: number | null = null;
   isExporting = false;
   isDeletingId: number | null = null;
+  isRenamingId: number | null = null;
+  isBulkDeleting = false;
 
   error: string | null = null;
 
@@ -154,6 +156,35 @@ class ForecastStore {
     }
   }
 
+  /**
+   * Renomme une prévision (PATCH /forecasts/{id}/ avec `{title}`).
+   * Met à jour à la fois la liste et la prévision courante si elle correspond.
+   */
+  async rename(id: number, title: string): Promise<boolean> {
+    this.isRenamingId = id;
+    this.error = null;
+    try {
+      const updated = await renameForecast(id, title);
+      runInAction(() => {
+        const indexInList = this.list.findIndex((f) => f.id === id);
+        if (indexInList !== -1) {
+          this.list[indexInList] = { ...this.list[indexInList], title: updated.title };
+        }
+        if (this.currentForecast?.id === id) {
+          this.currentForecast = { ...this.currentForecast, title: updated.title };
+        }
+        this.isRenamingId = null;
+      });
+      return true;
+    } catch (e) {
+      runInAction(() => {
+        this.error = getAxiosErrorMessage(e);
+        this.isRenamingId = null;
+      });
+      return false;
+    }
+  }
+
   async remove(id: number): Promise<boolean> {
     this.isDeletingId = id;
     this.error = null;
@@ -177,6 +208,60 @@ class ForecastStore {
     }
   }
 
+  /**
+   * Suppression en masse : DELETE en parallèle, on garde la liste finale
+   * cohérente même si certains appels échouent. Renvoie {succeeded, failed}
+   * pour que l'UI puisse afficher un toast récap.
+   */
+  async removeMany(ids: number[]): Promise<{
+    succeeded: number[];
+    failed: { id: number; error: string }[];
+  }> {
+    if (ids.length === 0) return { succeeded: [], failed: [] };
+
+    this.isBulkDeleting = true;
+    this.error = null;
+
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          await deleteForecast(id);
+          return { id, ok: true as const };
+        } catch (e) {
+          return { id, ok: false as const, error: getAxiosErrorMessage(e) };
+        }
+      }),
+    );
+
+    const succeeded = results.filter((r) => r.ok).map((r) => r.id);
+    const failed = results
+      .filter((r): r is { id: number; ok: false; error: string } => !r.ok)
+      .map((r) => ({ id: r.id, error: r.error }));
+
+    runInAction(() => {
+      const succeededSet = new Set(succeeded);
+      this.list = this.list.filter((f) => !succeededSet.has(f.id));
+      this.pagination.count = Math.max(
+        this.pagination.count - succeeded.length,
+        0,
+      );
+      if (
+        this.currentForecast &&
+        succeededSet.has(this.currentForecast.id)
+      ) {
+        this.currentForecast = null;
+      }
+      this.isBulkDeleting = false;
+      if (failed.length > 0) {
+        // On surface la première erreur pour les consommateurs qui lisent
+        // `error` (ex. toast générique).
+        this.error = failed[0].error;
+      }
+    });
+
+    return { succeeded, failed };
+  }
+
   async exportToFile(
     id: number,
     type: ExportType,
@@ -185,7 +270,7 @@ class ForecastStore {
     this.isExporting = true;
     this.error = null;
     try {
-      const blob = await exportForecast(id, type, filters);
+      const { blob, filename: serverFilename } = await exportForecast(id, type, filters);
       const isFiltered = !!(
         filters?.school ||
         filters?.dateFrom ||
@@ -193,7 +278,7 @@ class ForecastStore {
         filters?.sortBy
       );
       const filename =
-        extractFilenameFromContentDisposition(undefined) ??
+        serverFilename ??
         `previsions_repas_${id}${isFiltered ? "_filtre" : ""}.${type}`;
       triggerBrowserDownload(blob, filename);
       runInAction(() => {

@@ -17,6 +17,7 @@ from apps.forecasting.serializers import (
     ForecastDetailSerializer,
     ForecastListSerializer,
     ForecastRowSerializer,
+    ForecastUpdateSerializer,
 )
 
 
@@ -46,6 +47,8 @@ class ForecastViewSet(viewsets.ModelViewSet):
             return ForecastCreateSerializer
         if self.action == "retrieve":
             return ForecastDetailSerializer
+        if self.action == "partial_update":
+            return ForecastUpdateSerializer
         return ForecastListSerializer
 
     def create(self, request, *args, **kwargs):
@@ -58,10 +61,15 @@ class ForecastViewSet(viewsets.ModelViewSet):
         )
 
     def partial_update(self, request, *args, **kwargs):
-        # Forecast metadata is immutable — use the rows endpoint to edit lines.
+        # Only the `title` is mutable on a Forecast — other metadata reflects
+        # the pipeline run and must stay frozen. Row edits go through
+        # /rows/{row_id}/, not here.
+        forecast = self.get_object()
+        serializer = self.get_serializer(forecast, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(
-            {"detail": "Method not allowed. Use /rows/{row_id}/ to edit a forecast row."},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+            ForecastDetailSerializer(forecast, context={"request": request}).data
         )
 
     @action(
@@ -145,6 +153,10 @@ class ForecastViewSet(viewsets.ModelViewSet):
         df["DATE"] = pd.to_datetime(df["DATE"]).dt.date.astype(str)
         df["A PREPARER"] = df["A PREPARER"].fillna(0).astype(int)
         df["Supplement Humain"] = df["Supplement Humain"].fillna(0).astype(int)
+        # Colonne dédiée répétée sur chaque ligne : la valeur est la même
+        # partout (paramètre global de la prévision), mais en colonne plutôt
+        # qu'en ligne séparée, Excel peut filtrer/trier sans la perdre.
+        df["Stock tampon"] = int(forecast.stock_tampon)
 
         is_filtered = bool(school or date_from or date_to or sort_by)
         suffix = "_filtre" if is_filtered else ""

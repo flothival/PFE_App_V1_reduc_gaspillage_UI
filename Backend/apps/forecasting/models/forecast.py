@@ -22,6 +22,12 @@ class Forecast(models.Model):
         related_name="forecasts",
         verbose_name="Utilisateur",
     )
+    title = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name="Titre",
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Créée le")
     status = models.CharField(
         max_length=20,

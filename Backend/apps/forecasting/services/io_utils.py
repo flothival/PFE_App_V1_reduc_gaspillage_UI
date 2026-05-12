@@ -9,6 +9,31 @@ import pandas as pd
 CsvSource = Union[str, Path, IO[bytes]]
 
 
+class MissingCsvColumnError(ValueError):
+    """Raised when a CSV is missing a required column.
+
+    Carries the canonical column name, the accepted aliases, and the columns
+    actually present, so the serializer can build a user-friendly message
+    that names the specific missing column instead of a generic "400 Bad
+    Request" from pandas.
+    """
+
+    def __init__(
+        self,
+        canonical: str,
+        accepted: list[str],
+        found: list[str],
+    ) -> None:
+        self.canonical = canonical
+        self.accepted = accepted
+        self.found = found
+        super().__init__(
+            f"Colonne « {canonical} » manquante. "
+            f"Noms acceptés : {', '.join(accepted)}. "
+            f"Colonnes trouvées : {', '.join(found) if found else '(aucune)'}."
+        )
+
+
 def _read_bytes(source: CsvSource) -> bytes:
     """Read raw bytes from either a filesystem path or a file-like object.
 
@@ -49,27 +74,43 @@ def ensure_columns(df: pd.DataFrame, mapping: dict[str, list[str]]) -> pd.DataFr
     """
 
     cols_upper = {c.upper(): c for c in df.columns}
+    found_cols = list(df.columns)
 
-    def pick(cands: list[str]) -> str:
+    def pick(canonical: str, cands: list[str]) -> str:
         for c in cands:
             if c.upper() in cols_upper:
                 return cols_upper[c.upper()]
-        raise KeyError(f"Missing required column. Tried: {cands}. Existing: {list(df.columns)}")
+        raise MissingCsvColumnError(canonical, cands, found_cols)
 
     out = df.copy()
 
     out = out.rename(
         columns={
-            pick(["date", "DATE"]): "date",
-            pick(["school", "SCHOOL", "JOIN_SCHOOL_STD", "JOIN_SCHOOL_STD_first"]): "school",
+            pick("date", ["date", "DATE"]): "date",
+            pick(
+                "school",
+                ["school", "SCHOOL", "JOIN_SCHOOL_STD", "JOIN_SCHOOL_STD_first"],
+            ): "school",
         }
     )
 
     if "reservation_theorique" in mapping:
-        out = out.rename(columns={pick(mapping["reservation_theorique"]): "reservation_theorique"})
+        out = out.rename(
+            columns={
+                pick(
+                    "reservation_theorique", mapping["reservation_theorique"]
+                ): "reservation_theorique"
+            }
+        )
 
     if "presence_reel_eleve" in mapping:
-        out = out.rename(columns={pick(mapping["presence_reel_eleve"]): "presence_reel_eleve"})
+        out = out.rename(
+            columns={
+                pick(
+                    "presence_reel_eleve", mapping["presence_reel_eleve"]
+                ): "presence_reel_eleve"
+            }
+        )
 
     return out
 

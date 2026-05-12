@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 from apps.forecasting.models import Forecast, ForecastRow
 from apps.forecasting.services.io_utils import (
+    MissingCsvColumnError,
     load_future_reservations_csv,
     load_history_csv,
 )
@@ -20,14 +21,21 @@ def _validate_csv_columns(file_field, loader_fn):
     """Read the file, parse the CSV, and verify required columns are present.
 
     Materialises the bytes and resets the cursor so create() can re-read them.
-    Raises ValidationError with a human-readable message if a column is missing.
+    Raises ValidationError with a human-readable message if a column is missing
+    or if the file is unparsable.
     """
     raw = file_field.read()
     file_field.seek(0)
     try:
         loader_fn(io.BytesIO(raw))
-    except KeyError as exc:
+    except MissingCsvColumnError as exc:
+        # Message déjà localisé en français dans l'exception (nom canonique
+        # de la colonne manquante + alias acceptés + colonnes trouvées).
         raise serializers.ValidationError(str(exc))
+    except Exception as exc:
+        raise serializers.ValidationError(
+            f"Impossible de lire le fichier CSV : {exc}"
+        )
 
 
 class ForecastListSerializer(serializers.ModelSerializer):
@@ -39,6 +47,7 @@ class ForecastListSerializer(serializers.ModelSerializer):
         model = Forecast
         fields = [
             "id",
+            "title",
             "created_at",
             "status",
             "history_filename",
@@ -61,6 +70,7 @@ class ForecastDetailSerializer(serializers.ModelSerializer):
         model = Forecast
         fields = [
             "id",
+            "title",
             "created_at",
             "status",
             "history_filename",
@@ -76,6 +86,17 @@ class ForecastDetailSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class ForecastUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for PATCH /forecasts/{id}/ — only the title is mutable."""
+
+    class Meta:
+        model = Forecast
+        fields = ["title"]
+
+    def validate_title(self, value):
+        return value.strip()
+
+
 class ForecastCreateSerializer(serializers.Serializer):
     """Serializer for the upload endpoint.
 
@@ -86,6 +107,9 @@ class ForecastCreateSerializer(serializers.Serializer):
     history_file = serializers.FileField(write_only=True)
     future_file = serializers.FileField(write_only=True)
     stock_tampon = serializers.IntegerField(default=250, min_value=0)
+    title = serializers.CharField(
+        required=False, allow_blank=True, max_length=255, default=""
+    )
 
     def validate_history_file(self, value):
         if not value.name.lower().endswith(".csv"):
@@ -99,11 +123,21 @@ class ForecastCreateSerializer(serializers.Serializer):
         _validate_csv_columns(value, load_future_reservations_csv)
         return value
 
+    def validate_title(self, value):
+        return value.strip()
+
     def create(self, validated_data):
         history_file = validated_data["history_file"]
         future_file = validated_data["future_file"]
         stock_tampon = validated_data["stock_tampon"]
+        title = validated_data.get("title", "").strip()
         user = self.context["request"].user
+
+        # Auto-numérotation : "Prévision N" où N = (nb total de prévisions
+        # de l'utilisateur) + 1. Basé sur le compteur global plutôt que sur
+        # l'ID pour éviter les sauts visibles après suppression.
+        if not title:
+            title = f"Prévision {Forecast.objects.filter(user=user).count() + 1}"
 
         # Materialize bytes once : we both store them in DB AND feed them to the pipeline
         history_file.seek(0)
@@ -132,6 +166,7 @@ class ForecastCreateSerializer(serializers.Serializer):
         with transaction.atomic():
             forecast = Forecast.objects.create(
                 user=user,
+                title=title,
                 status=Forecast.Status.DONE,
                 history_filename=history_file.name,
                 future_filename=future_file.name,
