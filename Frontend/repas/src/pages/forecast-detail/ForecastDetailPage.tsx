@@ -146,9 +146,9 @@ const ForecastDetailContent = observer(function ForecastDetailContent({
 
   return (
     <>
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <h1 className="truncate text-2xl font-semibold tracking-tight">
+          <h1 className="w-fit min-w-0 max-w-full truncate border-b-4 border-b-[#51EDC6] pb-1 font-montpellier text-3xl font-bold tracking-[-0.025em] !leading-[1.25]">
             {forecastDisplayTitle(forecast)}
           </h1>
           <ForecastStatusBadge status={forecast.status} />
@@ -330,7 +330,7 @@ const ExportButton = observer(function ExportButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="default" size="sm" className="font-montpellier">
           <Download aria-hidden />
           Exporter
         </Button>
@@ -497,40 +497,65 @@ function FormatOption({
   );
 }
 
-/* ============================================================
- * Bandeau métadonnées
- * ============================================================ */
+
+// Bandeau métadonnées
 
 function MetadataCard({ forecast }: { forecast: Forecast }) {
   return (
-    <Card>
+    <Card className="shadow-card-blue">
       <CardContent className="grid grid-cols-2 gap-4 py-5 md:grid-cols-4">
-        <MetaItem label="Créée le" value={formatDateTime(forecast.created_at)} />
+        <MetaItem
+          label="Créée le"
+          value={formatDateTime(forecast.created_at)}
+        />
         <MetaItem
           label="Période"
           value={formatPeriod(forecast.predict_start, forecast.predict_end)}
         />
-        <MetaItem label="Stock tampon" value={String(forecast.stock_tampon)} />
-        <MetaItem label="Lignes" value={String(forecast.rows?.length ?? 0)} />
+        <MetaItem
+          label="Stock tampon"
+          value={String(forecast.stock_tampon)}
+          accent
+        />
+        <MetaItem
+          label="Lignes"
+          value={String(forecast.rows?.length ?? 0)}
+          accent
+        />
       </CardContent>
     </Card>
   );
 }
 
-function MetaItem({ label, value }: { label: string; value: string }) {
+function MetaItem({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs uppercase tracking-wide text-muted-foreground">
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
-      <span className="text-sm font-medium">{value}</span>
+      <span
+        className={cn(
+          "font-montpellier tabular-nums",
+          accent
+            ? "text-2xl font-extrabold tracking-[-0.025em] text-primary !leading-[1.1]"
+            : "text-sm font-semibold",
+        )}
+      >
+        {value}
+      </span>
     </div>
   );
 }
 
-/* ============================================================
- * Etats pending / error
- * ============================================================ */
+// Etats pending / error
 
 function PendingState() {
   return (
@@ -556,24 +581,22 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-/* ============================================================
- * Table des lignes
- * ============================================================ */
+// Table des lignes
 
 /**
  * Seuil au-dessus duquel on bascule en rendu virtualisé.
  * En dessous, on rend la totalité du tableau (plus simple, fonctionne pour
  * Ctrl+F navigateur, sélection texte, etc.).
  */
-const VIRTUALIZE_THRESHOLD = 10;
+const VIRTUALIZE_THRESHOLD = 50;
 
 /** Hauteur estimée d'une ligne (px) — recalibrer si on change la densité de la table. */
 const ESTIMATED_ROW_HEIGHT = 49;
 
-/** Nombre de colonnes du tableau — utilisé pour les `colSpan` des spacers virtualisés. */
+/** Nombre de colonnes du tableau */
 const COLUMN_COUNT = 7;
 
-/** Intervalle de polling (ms) pour les prévisions au statut `pending`. */
+/** Intervalle de polling (ms) */
 const POLLING_INTERVAL_MS = 3000;
 
 type SortColumn = "date" | "school";
@@ -709,7 +732,7 @@ function RowsTable({
   const sortProps: SortProps = { sort: filters.sort, onToggle: filters.toggleSort };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden shadow-card-blue">
       <CardHeader>
         <CardTitle className="text-base">Détail par jour et par école</CardTitle>
         <CardDescription>
@@ -761,9 +784,7 @@ function RowsTable({
   );
 }
 
-/* ------------------------------------------------------------
- * Toolbar (recherche + plage de dates + reset)
- * ------------------------------------------------------------ */
+// Toolbar (recherche + plage de dates + reset)
 
 function TableToolbar({
   search,
@@ -875,9 +896,7 @@ function TableToolbar({
   );
 }
 
-/* ------------------------------------------------------------
- * Header de table avec colonnes triables
- * ------------------------------------------------------------ */
+// Header de table avec colonnes triables
 
 function RowsTableHeader({ sortProps }: { sortProps: SortProps }) {
   return (
@@ -937,9 +956,7 @@ function SortableHead({
   );
 }
 
-/* ------------------------------------------------------------
- * Bodies (simple et virtualisé)
- * ------------------------------------------------------------ */
+// Bodies (simple et virtualisé)
 
 function SimpleRowsBody({
   rows,
@@ -1039,9 +1056,7 @@ const RowLine = observer(function RowLine({ row }: { row: ForecastRow }) {
   );
 });
 
-/* ============================================================
- * Input éditable du supplement_humain (save onBlur / Enter).
- * ============================================================ */
+// Input éditable du supplement_humain
 
 const SupplementInput = observer(function SupplementInput({
   row,
@@ -1063,7 +1078,7 @@ const SupplementInput = observer(function SupplementInput({
   const commit = () => {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
-      // Valeur invalide → restaurer la dernière valeur connue.
+      // Valeur invalide : restaurer la dernière valeur connue.
       setValue(String(row.supplement_humain));
       return;
     }
@@ -1104,9 +1119,6 @@ const SupplementInput = observer(function SupplementInput({
   );
 });
 
-/* ============================================================
- * Skeleton de chargement
- * ============================================================ */
 
 function DetailSkeleton() {
   return (
@@ -1133,9 +1145,7 @@ function DetailSkeleton() {
   );
 }
 
-/* ============================================================
- * Helpers de format
- * ============================================================ */
+// Helpers de format
 
 function formatDateTime(iso: string): string {
   try {

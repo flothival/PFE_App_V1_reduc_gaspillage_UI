@@ -63,7 +63,34 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+    # Rate limiting — appliqué uniquement aux vues qui déclarent un
+    # `throttle_classes` (pas global pour ne pas pénaliser le reste de l'API).
+    # Scope `login` utilisé par `apps.authentication.throttles.LoginRateThrottle`
+    # sur TokenObtainPairView + OIDCView (anti brute-force).
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '5/min',
+    },
 }
+
+# Limite la taille des uploads multipart à 50 Mo
+DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50 Mo
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50 Mo
+
+
+# --- Durcissement HTTPS (prod uniquement) ------------------------------
+# En dev (DEBUG=1) ces réglages cassent le serveur local (boucles HTTPS).
+# En prod, Traefik fait le HTTPS en amont — `SECURE_PROXY_SSL_HEADER` indique
+# à Django comment reconnaître les requêtes déjà chiffrées par le reverse proxy.
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True            # HTTP → HTTPS auto
+    SECURE_HSTS_SECONDS = 31536000        # navigateur garde HTTPS en mémoire 1 an
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True          # cookies session uniquement en HTTPS
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True    # empêche le MIME-sniffing
+    X_FRAME_OPTIONS = 'DENY'              # interdit l'embed en iframe (anti-clickjacking)
 
 TEMPLATES = [
     {

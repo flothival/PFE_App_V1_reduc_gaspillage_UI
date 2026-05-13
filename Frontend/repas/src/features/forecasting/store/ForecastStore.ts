@@ -5,6 +5,7 @@ import {
   deleteForecast,
   exportForecast,
   getForecast,
+  getQuota,
   listForecasts,
   renameForecast,
   updateRowSupplement,
@@ -15,6 +16,7 @@ import type {
   ExportType,
   Forecast,
   ForecastRow,
+  StorageQuota,
 } from "@/features/forecasting/model/types";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -30,6 +32,9 @@ class ForecastStore {
   pagination: Pagination = { count: 0, page: 1, pageSize: DEFAULT_PAGE_SIZE };
 
   currentForecast: Forecast | null = null;
+
+  /** Quota de stockage utilisateur — null tant que pas chargé. */
+  quota: StorageQuota | null = null;
 
   isLoadingList = false;
   isLoadingDetail = false;
@@ -59,7 +64,21 @@ class ForecastStore {
     this.list = [];
     this.pagination = { count: 0, page: 1, pageSize: DEFAULT_PAGE_SIZE };
     this.currentForecast = null;
+    this.quota = null;
     this.error = null;
+  }
+
+  /** Récupère l'état du quota. Silencieux en cas d'erreur — la barre est
+   * juste un indicateur d'appoint, on ne veut pas casser la liste pour ça. */
+  async fetchQuota(): Promise<void> {
+    try {
+      const quota = await getQuota();
+      runInAction(() => {
+        this.quota = quota;
+      });
+    } catch {
+      /* on n'écrase pas le quota précédent ni `error` global */
+    }
   }
 
   async fetchList(page = 1, pageSize = DEFAULT_PAGE_SIZE): Promise<void> {
@@ -106,6 +125,7 @@ class ForecastStore {
         this.currentForecast = forecast;
         this.isCreating = false;
       });
+      void this.fetchQuota();
       return forecast.id;
     } catch (e) {
       runInAction(() => {
@@ -198,6 +218,7 @@ class ForecastStore {
         }
         this.isDeletingId = null;
       });
+      void this.fetchQuota();
       return true;
     } catch (e) {
       runInAction(() => {
@@ -210,8 +231,7 @@ class ForecastStore {
 
   /**
    * Suppression en masse : DELETE en parallèle, on garde la liste finale
-   * cohérente même si certains appels échouent. Renvoie {succeeded, failed}
-   * pour que l'UI puisse afficher un toast récap.
+   * cohérente même si certains appels échouent. 
    */
   async removeMany(ids: number[]): Promise<{
     succeeded: number[];
@@ -254,11 +274,13 @@ class ForecastStore {
       this.isBulkDeleting = false;
       if (failed.length > 0) {
         // On surface la première erreur pour les consommateurs qui lisent
-        // `error` (ex. toast générique).
         this.error = failed[0].error;
       }
     });
 
+    if (succeeded.length > 0) {
+      void this.fetchQuota();
+    }
     return { succeeded, failed };
   }
 

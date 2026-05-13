@@ -13,8 +13,6 @@ for model in forecasting_app.get_models():
         pass
 
 
-# Show the user ID in the admin user list — useful to map Forecast.user_id back
-# to a username when debugging via pgAdmin.
 User = get_user_model()
 
 

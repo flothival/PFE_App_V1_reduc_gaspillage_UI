@@ -1,7 +1,3 @@
-/**
- * Provider minimal pour les composants UI (ex. Sonner) : suit le thème de {@link appStore}.
- * Remplace le theme-provider du studio (lié à l’éditeur) dans les projets générés.
- */
 import { createContext, useContext, type ReactNode } from "react";
 import { observer } from "mobx-react-lite";
 import { appStore } from "@/stores/AppStore";

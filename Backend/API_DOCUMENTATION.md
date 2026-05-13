@@ -18,11 +18,13 @@ Application web pour la Métropole de Montpellier. Prédit les quantités de rep
    - [PATCH /api/forecasting/forecasts/{id}/rows/{row_id}/](#54-patch-apiforecastingforecastsidrowsrow_id)
    - [GET /api/forecasting/forecasts/{id}/export/](#55-get-apiforecastingforecastsidexport)
    - [DELETE /api/forecasting/forecasts/{id}/](#56-delete-apiforecastingforecastsid)
+   - [GET /api/forecasting/forecasts/quota/](#57-get-apiforecastingforecastsquota)
 6. [Pipeline de prévision](#6-pipeline-de-prévision)
 7. [Validation des fichiers CSV](#7-validation-des-fichiers-csv)
-8. [Logs](#8-logs)
-9. [Tests](#9-tests)
-10. [Variables d'environnement](#10-variables-denvironnement)
+8. [Sécurité](#8-sécurité)
+9. [Logs](#9-logs)
+10. [Tests](#10-tests)
+11. [Variables d'environnement](#11-variables-denvironnement)
 
 ---
 
@@ -141,6 +143,26 @@ Retourne les infos de l'utilisateur actuellement connecté.
 | `access` | 1 heure |
 | `refresh` | 1 jour |
 
+### Rate limiting — anti brute-force
+
+Les endpoints de **login** sont limités à **5 tentatives par minute et par IP** :
+
+| Endpoint | Limite |
+|---|---|
+| `POST /api/auth/token/` | 5/min/IP |
+| `POST /api/auth/oidc/` | 5/min/IP |
+| `POST /api/auth/token/refresh/` | non limité (utilisateur déjà connu) |
+| Autres endpoints | non limités |
+
+Au-delà, l'API renvoie :
+
+```
+HTTP 429 Too Many Requests
+{ "detail": "Request was throttled. Expected available in 42 seconds." }
+```
+
+Implémentation : `apps.authentication.throttles.LoginRateThrottle` (scope `login`), appliqué via `throttle_classes = [LoginRateThrottle]` sur les vues concernées.
+
 ---
 
 ## 4. Base de données — Modèles
@@ -233,8 +255,12 @@ Les noms de colonnes sont insensibles à la casse. Le séparateur est détecté 
 #### Validations
 
 1. Extension `.csv` obligatoire pour les deux fichiers → `400` si absent
-2. Colonnes requises présentes → `400` avec message explicite si manquante
-3. Pipeline doit s'exécuter sans erreur → `400` si échec
+2. Taille de chaque fichier ≤ **50 Mo** → `400` si dépassé
+3. Colonnes requises présentes → `400` avec message explicite si manquante
+4. Quota de stockage utilisateur ≤ **200 Mo** (somme `history_file + future_file` de toutes les prévisions du user) → `400` si la création ferait dépasser ce plafond
+5. Pipeline doit s'exécuter sans erreur → `400` si échec
+
+> Voir [section 8 — Sécurité](#8-sécurité) pour le détail des limites et leur rationale.
 
 #### Réponse 201 — Forecast créé
 
@@ -276,10 +302,23 @@ Les noms de colonnes sont insensibles à la casse. Le séparateur est détecté 
 }
 ```
 
-#### Réponse 400 — Erreur de validation
+#### Réponses 400 — Erreurs de validation
 
+**Colonne manquante** :
 ```json
 { "history_file": ["Missing required column. Tried: ['presence_reel_eleve', ...]. Existing: ['date', 'school', 'reservation_theorique']"] }
+```
+
+**Fichier > 50 Mo** :
+```json
+{ "history_file": ["Le fichier dépasse la taille maximale autorisée (50 Mo). Taille reçue : 73.4 Mo."] }
+```
+
+**Quota utilisateur dépassé** :
+```json
+{
+  "detail": "Quota de stockage dépassé : vous utilisez actuellement 190.0 Mo sur 200 Mo, et cette prévision ajouterait 25.4 Mo. Supprimez d'anciennes prévisions pour libérer de l'espace."
+}
 ```
 
 ---
@@ -448,6 +487,49 @@ Supprime une prévision et toutes ses lignes (cascade).
 
 ---
 
+### 5.7 `GET /api/forecasting/forecasts/quota/`
+
+Renvoie l'état du quota de stockage CSV pour l'utilisateur connecté. Consommé par l'indicateur de quota du frontend (barre de progression dans le footer).
+
+**Authentification requise :** oui
+
+#### Réponse 200
+
+```json
+{
+  "used_bytes": 47185920,
+  "max_bytes": 209715200,
+  "forecast_count": 4
+}
+```
+
+| Champ | Type | Description |
+|---|---|---|
+| `used_bytes` | Integer | Somme en octets de `history_file + future_file` sur **toutes** les prévisions du user |
+| `max_bytes` | Integer | Plafond du quota — actuellement `200 * 1024 * 1024` (200 Mo) |
+| `forecast_count` | Integer | Nombre total de prévisions du user (pour info, indépendant du quota) |
+
+#### Calcul
+
+Un seul `SELECT` agrégé en SQL :
+
+```sql
+SELECT COALESCE(SUM(OCTET_LENGTH(history_file)), 0)
+     + COALESCE(SUM(OCTET_LENGTH(future_file)), 0)
+FROM app_forecasting_forecast
+WHERE user_id = <id>
+```
+
+Pas de cache : le calcul est refait à chaque requête. Suffisamment léger pour rester à la volée.
+
+#### Quand le front rafraîchit cet endpoint
+
+- Au mount du footer (= après login)
+- Automatiquement après `POST` (création), `DELETE` (suppression simple ou en masse)
+- Pas de polling
+
+---
+
 ## 6. Pipeline de prévision
 
 Le pipeline est contenu dans `apps/forecasting/services/` et ne dépend d'aucune interface graphique.
@@ -523,7 +605,7 @@ amount_predicted = reservation_theorique + delta_learned
 
 ## 7. Validation des fichiers CSV
 
-Effectuée dans `ForecastCreateSerializer` **avant** que le pipeline soit lancé.
+Effectuée dans `ForecastCreateSerializer` **avant** que le pipeline soit lancé. L'ordre est important : chaque étape est rapide à exécuter, on échoue dès la première qui rate pour ne pas consommer de CPU/RAM inutilement.
 
 ### Étape 1 — Extension
 
@@ -532,9 +614,19 @@ history_file.name doit se terminer par ".csv"  →  sinon 400
 future_file.name  doit se terminer par ".csv"  →  sinon 400
 ```
 
-### Étape 2 — Colonnes requises
+### Étape 2 — Taille (par fichier)
 
-Le validateur appelle les mêmes fonctions que le pipeline (`load_history_csv`, `load_future_reservations_csv`). Si une colonne est manquante, ces fonctions lèvent une `KeyError` avec un message lisible, que le serializer transforme en `ValidationError` DRF :
+```
+file.size  ≤  50 Mo  →  sinon 400 avec message "Le fichier dépasse… Taille reçue : X.X Mo"
+```
+
+Double protection :
+- Au niveau Django global : `DATA_UPLOAD_MAX_MEMORY_SIZE = 50 Mo` (settings.py) coupe la requête en amont avec une erreur générique
+- Au niveau serializer : `_validate_csv_size()` renvoie un message localisé en français
+
+### Étape 3 — Colonnes requises
+
+Le validateur appelle les mêmes fonctions que le pipeline (`load_history_csv`, `load_future_reservations_csv`). Si une colonne est manquante, ces fonctions lèvent une `MissingCsvColumnError` avec un message lisible, que le serializer transforme en `ValidationError` DRF :
 
 ```json
 {
@@ -546,9 +638,79 @@ Le validateur appelle les mêmes fonctions que le pipeline (`load_history_csv`, 
 
 Après la validation, le curseur du fichier est remis à zéro (`seek(0)`) pour que `create()` puisse le relire.
 
+### Étape 4 — Quota utilisateur (cumul)
+
+Au niveau `validate(attrs)` du serializer (pas champ par champ, parce qu'on a besoin de la somme des deux fichiers) :
+
+```
+used = SUM(OCTET_LENGTH(history_file) + OCTET_LENGTH(future_file))
+       FROM Forecast WHERE user = current_user
+
+si  used + history_file.size + future_file.size  >  200 Mo  →  400
+```
+
+Message d'erreur localisé incluant l'usage actuel, l'incrément, le plafond, et l'action recommandée ("Supprimez d'anciennes prévisions").
+
 ---
 
-## 8. Logs
+## 8. Sécurité
+
+Synthèse des mesures de protection appliquées.
+
+### 8.1 Isolation utilisateur
+
+Tous les endpoints `/api/forecasting/forecasts/` filtrent automatiquement sur `user=request.user` via `get_queryset()`. Un utilisateur ne peut **jamais** voir, modifier, supprimer ou exporter une prévision qui ne lui appartient pas — toute tentative renvoie un `404`.
+
+Test dédié : `test_forecast_isolation.py`.
+
+### 8.2 Rate limiting (anti brute-force)
+
+Limite **5 tentatives par minute par IP** sur les endpoints de login (`/api/auth/token/` et `/api/auth/oidc/`). Au-delà : `HTTP 429 Too Many Requests`.
+
+Configuration : `LoginRateThrottle` (scope `login`) défini dans `apps/authentication/throttles.py`. Le scope `login` est associé à `5/min` dans `REST_FRAMEWORK['DEFAULT_THROTTLE_RATES']` (settings.py).
+
+Le refresh token et les autres endpoints ne sont pas throttlés.
+
+### 8.3 Limites d'upload
+
+| Limite | Valeur | Lieu |
+|---|---|---|
+| Taille max d'un CSV | 50 Mo | `DATA_UPLOAD_MAX_MEMORY_SIZE` + validation serializer |
+| Taille max requête multipart | 50 Mo | `FILE_UPLOAD_MAX_MEMORY_SIZE` |
+| Quota cumulé par user | 200 Mo | `MAX_STORAGE_BYTES_PER_USER` dans `services/quota.py` |
+
+Objectif : éviter qu'un client malveillant ou bogué sature la RAM/disque (DoS basique) ou remplisse la BDD indéfiniment.
+
+### 8.4 Headers HTTPS — production uniquement
+
+En production (`DEBUG=0`), Django ajoute automatiquement les headers de sécurité suivants :
+
+| Header / Setting | Valeur | Rôle |
+|---|---|---|
+| `SECURE_SSL_REDIRECT` | `True` | Redirection HTTP → HTTPS automatique |
+| `SECURE_HSTS_SECONDS` | `31536000` (1 an) | Force HTTPS côté navigateur pendant 1 an |
+| `SECURE_HSTS_INCLUDE_SUBDOMAINS` | `True` | Applique HSTS aux sous-domaines |
+| `SECURE_HSTS_PRELOAD` | `True` | Eligible à la liste de preload des navigateurs |
+| `SESSION_COOKIE_SECURE` | `True` | Cookies session uniquement en HTTPS |
+| `CSRF_COOKIE_SECURE` | `True` | Cookies CSRF uniquement en HTTPS |
+| `SECURE_CONTENT_TYPE_NOSNIFF` | `True` | Empêche le MIME-sniffing |
+| `X_FRAME_OPTIONS` | `'DENY'` | Interdit l'embed en iframe (anti-clickjacking) |
+| `SECURE_PROXY_SSL_HEADER` | `('HTTP_X_FORWARDED_PROTO', 'https')` | Reconnaît les requêtes déjà chiffrées par Traefik en amont |
+
+> **Important** : le réglage `SECURE_PROXY_SSL_HEADER` est indispensable parce que Traefik (reverse proxy DSI) fait le TLS en amont. Sans lui, `SECURE_SSL_REDIRECT` boucle sur lui-même.
+
+En développement (`DEBUG=1`), aucun de ces réglages n'est appliqué pour ne pas casser le serveur local en HTTP.
+
+### 8.5 Auth & JWT
+
+- Algorithme : HS256 (signé avec `DJANGO_SECRET_KEY`)
+- `access_token` : 1 h
+- `refresh_token` : 1 j
+- Aucun cookie de session côté front — le JWT est envoyé en header `Authorization: Bearer <token>` à chaque requête authentifiée
+
+---
+
+## 9. Logs
 
 Le backend loggue les événements clés du pipeline via le module Python `logging`.
 
@@ -577,7 +739,7 @@ Format des logs :
 
 ---
 
-## 9. Tests
+## 10. Tests
 
 Tests unitaires et d'intégration avec **pytest** + **pytest-django**.
 
@@ -616,7 +778,7 @@ Les tests de validation des colonnes (`test_create_rejects_*`) n'utilisent **pas
 
 ---
 
-## 10. Variables d'environnement
+## 11. Variables d'environnement
 
 Copier `.env.example` → `.env` et remplir :
 

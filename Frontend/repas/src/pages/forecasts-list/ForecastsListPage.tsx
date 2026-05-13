@@ -63,7 +63,7 @@ type SortDirection = "asc" | "desc";
 /**
  * Page liste des prévisions.
  * - Fetch automatique au mount + à chaque changement de page.
- * - Lignes cliquables → page détail.
+ * - Lignes cliquables : page détail.
  * - Bouton "Nouvelle prévision" en haut à droite.
  */
 export const ForecastsListPage = observer(function ForecastsListPage() {
@@ -73,7 +73,7 @@ export const ForecastsListPage = observer(function ForecastsListPage() {
   const { list, pagination, totalPages, isLoadingList, error } = forecastStore;
 
   // Tri client sur la colonne "Créée le". Par défaut, on garde l'ordre serveur
-  // (décroissant) — premier clic = asc, deuxième = desc, troisième = reset.
+  // (décroissant) : premier clic = asc, deuxième = desc, troisième = reset.
   const [createdSort, setCreatedSort] = useState<SortDirection | null>(null);
 
   // Sélection multiple — scope page courante uniquement. On reset à chaque
@@ -83,8 +83,6 @@ export const ForecastsListPage = observer(function ForecastsListPage() {
   useEffect(() => {
     void forecastStore.fetchList(pagination.page, pagination.pageSize);
     setSelectedIds(new Set());
-    // On veut refetch quand la page change. pageSize est fixe pour l'instant.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page]);
 
   // Si la liste change (rename, fetch refresh), purge les IDs qui n'existent
@@ -145,14 +143,22 @@ export const ForecastsListPage = observer(function ForecastsListPage() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6 md:p-8">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Prévisions</h1>
-          <p className="text-sm text-muted-foreground">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-col gap-2">
+          <h1 className="w-fit border-b-4 border-b-[#51EDC6] pb-1 font-montpellier text-3xl font-bold tracking-[-0.025em] !leading-[1.25]">
+            Prévisions
+          </h1>
+          <p className="text-sm font-light text-muted-foreground">
             Liste de toutes les prévisions générées.
           </p>
         </div>
-        <Button onClick={() => navigate(PATHS.FORECAST_NEW)}>
+        <Button
+          variant="success"
+          size="lg"
+          slideEffect
+          onClick={() => navigate(PATHS.FORECAST_NEW)}
+          className="font-montpellier"
+        >
           <Plus aria-hidden />
           Nouvelle prévision
         </Button>
@@ -171,7 +177,7 @@ export const ForecastsListPage = observer(function ForecastsListPage() {
         <EmptyState onCreate={() => navigate(PATHS.FORECAST_NEW)} />
       ) : (
         <>
-          <div className="rounded-md border">
+          <div className="overflow-hidden rounded-lg bg-card shadow-card-blue">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -248,9 +254,7 @@ export const ForecastsListPage = observer(function ForecastsListPage() {
   );
 });
 
-/* ============================================================
- * Barre flottante d'actions sur la sélection multiple.
- * ============================================================ */
+// Barre flottante d'actions sur la sélection multiple
 
 const BulkSelectionBar = observer(function BulkSelectionBar({
   selectedIds,
@@ -404,9 +408,8 @@ const ForecastRow = observer(function ForecastRow({
   );
 });
 
-/* ============================================================
- * Menu d'actions sur une ligne (kebab) — renommer + supprimer.
- * ============================================================ */
+// Menu d'actions sur une ligne (burger button) 
+
 
 const ForecastRowActions = observer(function ForecastRowActions({
   forecast,
@@ -468,9 +471,7 @@ const ForecastRowActions = observer(function ForecastRowActions({
   );
 });
 
-/* ============================================================
- * Dialog : renommer une prévision.
- * ============================================================ */
+// renommer une prévision
 
 const RenameForecastDialog = observer(function RenameForecastDialog({
   forecast,
@@ -561,9 +562,7 @@ const RenameForecastDialog = observer(function RenameForecastDialog({
   );
 });
 
-/* ============================================================
- * AlertDialog : supprimer une prévision (confirmation).
- * ============================================================ */
+// AlertDialog : supprimer une prévision (confirmation)
 
 const DeleteForecastDialog = observer(function DeleteForecastDialog({
   forecast,
@@ -629,6 +628,7 @@ const DeleteForecastDialog = observer(function DeleteForecastDialog({
   );
 });
 
+// ListSkeleton : Placeholder pour la liste des prévisions
 function ListSkeleton() {
   return (
     <div className="rounded-md border">
@@ -660,7 +660,13 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
           pour générer votre première prévision automatique.
         </p>
       </div>
-      <Button onClick={onCreate} size="lg" className="mt-1">
+      <Button
+        variant="success"
+        size="lg"
+        slideEffect
+        onClick={onCreate}
+        className="mt-1 font-montpellier"
+      >
         <Plus aria-hidden />
         Créer ma première prévision
       </Button>

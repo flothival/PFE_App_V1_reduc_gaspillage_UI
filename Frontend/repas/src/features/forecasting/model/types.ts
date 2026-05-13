@@ -38,11 +38,18 @@ export type CreateForecastInput = {
   historyFile: File;
   futureFile: File;
   stockTampon: number;
-  /** Optionnel — si vide, le back génère "Prévision N". */
+  /** Optionnel si vide, le back génère "Prévision N". */
   title?: string;
 };
 
 export type ExportType = "csv" | "xlsx";
+
+/** Quota de stockage par utilisateur utilisé par l'indicateur de la liste. */
+export type StorageQuota = {
+  used_bytes: number;
+  max_bytes: number;
+  forecast_count: number;
+};
 
 /** Libellé affiché pour une prévision : titre saisi par l'user, sinon fallback `Prévision #<id>`. */
 export function forecastDisplayTitle(forecast: Pick<Forecast, "id" | "title">): string {

@@ -1,0 +1,346 @@
+/**
+ * Montpellier - Famille de polices
+ * Fichiers dans /fonts/Montpellier/
+ */
+
+/* ========== Montpellier (standard) ========== */
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-Thin.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-ThinItalic.otf') format('opentype');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-RegularItalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-MediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-Heavy.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-HeavyItalic.otf') format('opentype');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-ExtraBold.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-ExtraBoldItalic.otf') format('opentype');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-Black.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier';
+  src: url('./Montpellier/Montpellier-BlackItalic.otf') format('opentype');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* ========== Montpellier Condensed ========== */
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-Thin.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-ThinItalic.otf') format('opentype');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-RegularItalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-MediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-Heavy.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-HeavyItalic.otf') format('opentype');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-ExtraBold.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-ExtraBoldItalic.otf') format('opentype');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-Black.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Condensed';
+  src: url('./Montpellier/MontpellierCondensed-BlackItalic.otf') format('opentype');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* ========== Montpellier Narrow ========== */
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-Thin.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-ThinItalic.otf') format('opentype');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-RegularItalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-MediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-Heavy.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-HeavyItalic.otf') format('opentype');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-ExtraBold.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-ExtraBoldItalic.otf') format('opentype');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-Black.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Montpellier Narrow';
+  src: url('./Montpellier/MontpellierNarrow-BlackItalic.otf') format('opentype');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}

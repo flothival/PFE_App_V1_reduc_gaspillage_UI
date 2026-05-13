@@ -6,6 +6,7 @@ import type {
   Forecast,
   ForecastRow,
   PaginatedResponse,
+  StorageQuota,
 } from "@/features/forecasting/model/types";
 
 export type ListParams = {
@@ -73,6 +74,11 @@ export async function updateRowSupplement(
 
 export async function deleteForecast(id: number): Promise<void> {
   await api.delete(API_ENDPOINTS.forecasting.detail(id));
+}
+
+export async function getQuota(): Promise<StorageQuota> {
+  const { data } = await api.get<StorageQuota>(API_ENDPOINTS.forecasting.quota);
+  return data;
 }
 
 export type ExportFilters = {

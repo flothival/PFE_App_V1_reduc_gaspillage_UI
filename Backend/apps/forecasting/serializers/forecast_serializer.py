@@ -13,8 +13,26 @@ from apps.forecasting.services.io_utils import (
     load_history_csv,
 )
 from apps.forecasting.services.pipeline import run_forecast_pipeline
+from apps.forecasting.services.quota import (
+    MAX_STORAGE_BYTES_PER_USER,
+    get_user_storage_used,
+)
 
 from .forecast_row_serializer import ForecastRowSerializer
+
+
+# Taille max d'un CSV uploadé
+MAX_CSV_SIZE_BYTES = 50 * 1024 * 1024  # 50 Mo
+
+
+def _validate_csv_size(file_field):
+    """Refuse les CSVs > 50 Mo avec un message lisible côté front."""
+    if file_field.size > MAX_CSV_SIZE_BYTES:
+        size_mb = file_field.size / (1024 * 1024)
+        raise serializers.ValidationError(
+            f"Le fichier dépasse la taille maximale autorisée (50 Mo). "
+            f"Taille reçue : {size_mb:.1f} Mo."
+        )
 
 
 def _validate_csv_columns(file_field, loader_fn):
@@ -29,8 +47,6 @@ def _validate_csv_columns(file_field, loader_fn):
     try:
         loader_fn(io.BytesIO(raw))
     except MissingCsvColumnError as exc:
-        # Message déjà localisé en français dans l'exception (nom canonique
-        # de la colonne manquante + alias acceptés + colonnes trouvées).
         raise serializers.ValidationError(str(exc))
     except Exception as exc:
         raise serializers.ValidationError(
@@ -114,17 +130,46 @@ class ForecastCreateSerializer(serializers.Serializer):
     def validate_history_file(self, value):
         if not value.name.lower().endswith(".csv"):
             raise serializers.ValidationError("Le fichier doit être un CSV (.csv).")
+        _validate_csv_size(value)
         _validate_csv_columns(value, load_history_csv)
         return value
 
     def validate_future_file(self, value):
         if not value.name.lower().endswith(".csv"):
             raise serializers.ValidationError("Le fichier doit être un CSV (.csv).")
+        _validate_csv_size(value)
         _validate_csv_columns(value, load_future_reservations_csv)
         return value
 
     def validate_title(self, value):
         return value.strip()
+
+    def validate(self, attrs):
+        """Vérifie que la création ne fait pas dépasser le quota de stockage.
+        """
+        history = attrs["history_file"]
+        future = attrs["future_file"]
+        new_bytes = history.size + future.size
+
+        user = self.context["request"].user
+        used = get_user_storage_used(user)
+
+        if used + new_bytes > MAX_STORAGE_BYTES_PER_USER:
+            used_mb = used / (1024 * 1024)
+            new_mb = new_bytes / (1024 * 1024)
+            max_mb = MAX_STORAGE_BYTES_PER_USER / (1024 * 1024)
+            raise serializers.ValidationError(
+                {
+                    "detail": (
+                        f"Quota de stockage dépassé : vous utilisez actuellement "
+                        f"{used_mb:.1f} Mo sur {max_mb:.0f} Mo, et cette prévision "
+                        f"ajouterait {new_mb:.1f} Mo. Supprimez d'anciennes "
+                        f"prévisions pour libérer de l'espace."
+                    )
+                }
+            )
+
+        return attrs
 
     def create(self, validated_data):
         history_file = validated_data["history_file"]
@@ -139,7 +184,6 @@ class ForecastCreateSerializer(serializers.Serializer):
         if not title:
             title = f"Prévision {Forecast.objects.filter(user=user).count() + 1}"
 
-        # Materialize bytes once : we both store them in DB AND feed them to the pipeline
         history_file.seek(0)
         history_bytes = history_file.read()
         future_file.seek(0)
@@ -161,8 +205,6 @@ class ForecastCreateSerializer(serializers.Serializer):
                 {"detail": f"Échec du pipeline de prévision : {exc}"}
             )
 
-        # Forecast + rows must be created atomically — orphan Forecast rows
-        # would leak into the listing without their predicted lines.
         with transaction.atomic():
             forecast = Forecast.objects.create(
                 user=user,
@@ -179,7 +221,6 @@ class ForecastCreateSerializer(serializers.Serializer):
                 predict_end=result.predict_end,
             )
 
-            # bulk_create skips save() → we compute final_amount inline
             rows = [
                 ForecastRow(
                     forecast=forecast,

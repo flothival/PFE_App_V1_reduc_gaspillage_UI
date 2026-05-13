@@ -9,8 +9,8 @@ function readStoredTheme(): AppTheme | null {
     const v = localStorage.getItem(THEME_STORAGE_KEY);
     if (v === "dark" || v === "light") return v;
   } catch {
-    /* navigation privée, quota, etc. */
-  }
+    // ignore
+    }
   return null;
 }
 
@@ -47,7 +47,7 @@ class AppStore {
     try {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {
-      /* ignore */
+      // ignore
     }
     applyThemeToDocument(theme);
   }

@@ -1,13 +1,19 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { observer } from "mobx-react-lite";
-import { Loader2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
-  FieldGroup,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   Field,
+  FieldGroup,
   FieldLabel,
   FieldSeparator,
 } from "@/components/ui/field";
@@ -15,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { useStores } from "@/stores/StoreContext";
 import { getOidcUserManager, toastAuthError } from "@/lib/auth";
 import { PATHS } from "@/routes/paths";
-import { LoginMarketingPanel } from "@/pages/login/components/LoginMarketingPanel";
+import { BluePageLayout } from "@/components/layout/BluePageLayout";
 import { BrandLogo } from "@/components/branding/BrandLogo";
 
 export const LoginPage = observer(function LoginPage() {
@@ -46,7 +52,8 @@ export const LoginPage = observer(function LoginPage() {
     try {
       await getOidcUserManager().signinRedirect();
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Impossible de lancer la connexion SSO.";
+      const message =
+        e instanceof Error ? e.message : "Impossible de lancer la connexion SSO.";
       authStore.setError(message);
     } finally {
       setIsSsoPending(false);
@@ -54,44 +61,62 @@ export const LoginPage = observer(function LoginPage() {
   };
 
   return (
-    <div className={cn("flex min-h-screen flex-col items-center justify-center bg-muted p-4 sm:p-6 md:p-10")}>
-      <div className="w-full max-w-sm md:max-w-4xl">
-        <div className="md:grid md:grid-cols-[1fr_44%] md:items-stretch md:gap-3">
-        <Card className="h-auto overflow-hidden py-0 shadow-md">
-          <CardContent className="p-0">
+    <BluePageLayout>
+      <main className="flex flex-1 flex-col items-center justify-center gap-8 px-4 py-10 sm:px-6 md:py-12">
+        {/* Wordmark + tagline en blanc au-dessus de la card */}
+        <BrandLogo
+          variant="hero"
+          tone="white"
+          className="items-center text-center"
+        />
+
+        {/* Card form, doubleEffect signature MMM */}
+        <Card
+          doubleEffect
+          className="w-full max-w-md sm:w-[28rem]"
+        >
+          <CardHeader className="px-6 pt-6">
+            <CardTitle>Connexion</CardTitle>
+            <CardDescription>
+              SSO ou identifiant interne
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="px-6 pb-6">
             <form
               className={cn(
-                "flex h-auto flex-col px-6 py-7 sm:px-7 sm:py-8 md:px-9 md:py-9",
+                "flex flex-col gap-5",
                 authStore.isLoading && "pointer-events-none opacity-[0.92]",
               )}
               onSubmit={handleSubmit}
             >
               <FieldGroup className="gap-5">
-                <div className="flex flex-col gap-3">
-                  <div className="md:hidden">
-                    <BrandLogo variant="compact" tone="color" />
-                  </div>
-                  <div className="flex flex-col gap-1 text-center sm:text-left">
-                    <h1 className="text-2xl font-semibold tracking-tight text-foreground">Connexion</h1>
-                    <p className="text-sm text-muted-foreground">SSO ou identifiant interne</p>
-                  </div>
-                </div>
-
+                {/* CTA SSO : success turquoise avec slideEffect */}
                 <Field>
                   <Button
                     type="button"
-                    variant="outline"
-                    className="h-10 w-full"
+                    variant="success"
+                    size="xl"
+                    slideEffect
                     disabled={isBusy}
                     onClick={() => void handleSso()}
+                    className="font-montpellier w-full [&>span]:w-full [&>span]:justify-between"
                   >
-                    {isSsoPending ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" aria-hidden />
-                        Redirection SSO…
-                      </>
-                    ) : (
-                      "Connexion automatique"
+                    <span>
+                      {isSsoPending ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" aria-hidden />
+                          Redirection SSO…
+                        </>
+                      ) : (
+                        "Connexion automatique"
+                      )}
+                    </span>
+                    {!isSsoPending && (
+                      <ArrowRight
+                        className="ml-auto size-6 shrink-0"
+                        aria-hidden
+                      />
                     )}
                   </Button>
                 </Field>
@@ -101,51 +126,91 @@ export const LoginPage = observer(function LoginPage() {
                 </FieldSeparator>
 
                 <Field>
-                  <FieldLabel htmlFor="login-username">Nom d&apos;utilisateur</FieldLabel>
+                  <FieldLabel htmlFor="login-username">
+                    Nom d&apos;utilisateur
+                  </FieldLabel>
                   <Input
                     id="login-username"
                     name="username"
                     type="text"
+                    variant="lg"
                     autoComplete="username"
+                    placeholder="Identifiant"
                     required
                     disabled={isBusy}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                   />
                 </Field>
+
                 <Field>
                   <FieldLabel htmlFor="login-password">Mot de passe</FieldLabel>
                   <Input
                     id="login-password"
                     name="password"
                     type="password"
+                    variant="lg"
                     autoComplete="current-password"
+                    placeholder="Mot de passe"
                     required
                     disabled={isBusy}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
                 </Field>
+
                 <Field>
-                  <Button type="submit" className="h-10 w-full" disabled={isBusy}>
-                    {authStore.isLoading ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" aria-hidden />
-                        Connexion…
-                      </>
-                    ) : (
-                      "Se connecter"
+                  <Button
+                    type="submit"
+                    variant="default"
+                    size="xl"
+                    slideEffect
+                    disabled={isBusy}
+                    className="font-montpellier w-full [&>span]:w-full [&>span]:justify-between"
+                  >
+                    <span>
+                      {authStore.isLoading ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" aria-hidden />
+                          Connexion…
+                        </>
+                      ) : (
+                        "Se connecter"
+                      )}
+                    </span>
+                    {!authStore.isLoading && (
+                      <ArrowRight
+                        className="ml-auto size-6 shrink-0"
+                        aria-hidden
+                      />
                     )}
                   </Button>
                 </Field>
               </FieldGroup>
             </form>
-
-            </CardContent>
+          </CardContent>
         </Card>
-        <LoginMarketingPanel />
+
+        {/* Logos institutionnels en bas, en blanc inversé pour le logo MMM */}
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-[10px] uppercase tracking-widest text-white/70">
+            Une initiative de
+          </p>
+          <div className="flex items-center gap-5">
+            <img
+              src="/images/logos/logo-ville.png"
+              alt="Ville de Montpellier"
+              className="h-8 w-auto object-contain"
+            />
+            <span aria-hidden className="h-6 w-px bg-white/30" />
+            <img
+              src="/images/logos/logo-mmm.png"
+              alt="Montpellier Méditerranée Métropole"
+              className="h-8 w-auto object-contain brightness-0 invert"
+            />
+          </div>
         </div>
-      </div>
-    </div>
+      </main>
+    </BluePageLayout>
   );
 });

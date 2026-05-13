@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { observer } from "mobx-react-lite";
 import {
   ArrowLeft,
+  ArrowRight,
   BookOpen,
   FileText,
   Loader2,
@@ -92,7 +93,7 @@ export const ForecastNewPage = observer(function ForecastNewPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl p-6 md:p-8">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6 md:p-8">
       <div>
         <Button
           variant="ghost"
@@ -105,33 +106,37 @@ export const ForecastNewPage = observer(function ForecastNewPage() {
         </Button>
       </div>
 
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-col gap-2">
+          <h1 className="w-fit border-b-4 border-b-[#51EDC6] pb-1 font-montpellier text-3xl font-bold tracking-[-0.025em] !leading-[1.25]">
+            Nouvelle prévision
+          </h1>
+          <p className="max-w-2xl text-sm font-light text-muted-foreground">
+            Importez l&apos;historique des repas servis et les réservations à
+            venir. La génération peut prendre plusieurs secondes selon le
+            volume de données.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setIsGuideOpen((open) => !open)}
+          aria-expanded={isGuideOpen}
+          aria-controls="csv-guide-panel"
+        >
+          <BookOpen aria-hidden />
+          {isGuideOpen ? "Fermer le guide" : "Guide CSV"}
+        </Button>
+      </header>
+
       <div
         className={cn(
-          "mt-6 flex flex-col gap-6 lg:flex-row lg:items-start",
+          "flex flex-col gap-6 lg:flex-row lg:items-start",
           !isGuideOpen && "lg:justify-center",
         )}
       >
-        <Card className="w-full lg:max-w-2xl lg:flex-1">
-          <CardHeader>
-            <CardTitle className="text-xl">Nouvelle prévision</CardTitle>
-            <CardDescription>
-              Importez l&apos;historique des repas servis et les réservations à venir.
-              La génération peut prendre plusieurs secondes selon le volume de données.
-            </CardDescription>
-            <CardAction>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsGuideOpen((open) => !open)}
-                aria-expanded={isGuideOpen}
-                aria-controls="csv-guide-panel"
-              >
-                <BookOpen aria-hidden />
-                {isGuideOpen ? "Fermer le guide" : "Guide CSV"}
-              </Button>
-            </CardAction>
-          </CardHeader>
+        <Card className="w-full shadow-card-blue lg:max-w-2xl lg:flex-1">
 
           <CardContent>
             {apiError && (
@@ -244,14 +249,24 @@ export const ForecastNewPage = observer(function ForecastNewPage() {
                   >
                     Annuler
                   </Button>
-                  <Button type="submit" disabled={isCreating}>
+                  <Button
+                    type="submit"
+                    variant="success"
+                    size="xl"
+                    slideEffect
+                    disabled={isCreating}
+                    className="font-montpellier"
+                  >
                     {isCreating ? (
                       <>
                         <Loader2 className="animate-spin" aria-hidden />
                         Génération en cours…
                       </>
                     ) : (
-                      "Générer la prévision"
+                      <>
+                        Générer la prévision
+                        <ArrowRight className="size-5" aria-hidden />
+                      </>
                     )}
                   </Button>
                 </Field>
@@ -273,9 +288,7 @@ export const ForecastNewPage = observer(function ForecastNewPage() {
   );
 });
 
-/* ============================================================
- * FileDropZone, input file enrichi avec glisser-déposer.
- * ============================================================ */
+// FileDropZone, input file enrichi avec glisser-déposer
 
 type FileDropZoneProps = {
   id: string;
@@ -408,9 +421,7 @@ function FileDropZone({
   );
 }
 
-/* ============================================================
- * GuidePanel : volet d'aide CSV (colonnes + exemples).
- * ============================================================ */
+// GuidePanel : volet d'aide CSV (colonnes + exemples).
 
 function GuidePanel({ onClose }: { onClose: () => void }) {
   return (
@@ -542,10 +553,7 @@ function ExampleTable({
   );
 }
 
-/* ============================================================
- * Helpers
- * ============================================================ */
-
+// Helpers
 function isCsvFile(file: File): boolean {
   return /\.csv$/i.test(file.name);
 }

@@ -2,31 +2,16 @@ import { cn } from "@/lib/utils";
 
 type BrandLogoProps = {
   variant?: "compact" | "full" | "hero";
-  /** Couleur des lettres : "color" (multi-couleurs charte) ou "white" (header sombre). */
   tone?: "color" | "white";
+  showSubtitle?: boolean;
   className?: string;
 };
 
-const MMM_LETTER_COLORS = [
-  "#FFFFFF", // R - sera surchargé selon tone
-  "#D87043", // E - orange
-  "#80BA27", // P - vert
-  "#823C85", // A - violet
-  "#FFFFFF", // S
-] as const;
 
-const LETTERS = ["R", "E", "P", "A", "S"] as const;
-
-/**
- * Wordmark REPAS — chaque lettre dans une couleur de la charte MMM.
- *
- * - variant="compact" : juste le mot, taille header
- * - variant="full"    : mot + sous-titre développé
- * - variant="hero"    : grand mot + sous-titre, pour les écrans d'accueil/login
- */
 export function BrandLogo({
   variant = "compact",
   tone = "color",
+  showSubtitle,
   className,
 }: BrandLogoProps) {
   const sizes = {
@@ -34,53 +19,45 @@ export function BrandLogo({
     full: "text-4xl",
     hero: "text-6xl md:text-7xl",
   };
+  const subtitleSizes = {
+    compact: "text-xs",
+    full: "text-sm",
+    hero: "text-sm md:text-base",
+  };
 
-  const letterColors =
-    tone === "white"
-      ? ["#FFFFFF", "#FFB088", "#A8D85A", "#C99CC9", "#FFFFFF"]
-      : [
-          "var(--mmm-blue, #344575)",
-          "var(--mmm-orange, #D87043)",
-          "var(--mmm-green, #80BA27)",
-          "var(--mmm-purple, #823C85)",
-          "var(--mmm-blue, #344575)",
-        ];
+  const isWhite = tone === "white";
+  const wordmarkGradient = isWhite
+    ? "bg-gradient-to-r from-white to-[#51EDC6] bg-clip-text text-transparent"
+    : "bg-gradient-to-r from-[#0356F2] to-[#00D9B5] bg-clip-text text-transparent";
+  const subtitleColor = isWhite ? "text-white/80" : "text-muted-foreground";
+
+  const subtitleVisible =
+    showSubtitle ?? (variant === "full" || variant === "hero");
 
   return (
-    <div className={cn("inline-flex flex-col", className)}>
+    <div className={cn("inline-flex flex-col items-start gap-2", className)}>
       <span
         className={cn(
-          "font-black tracking-[0.08em] leading-none select-none",
+          "font-montpellier font-black tracking-[-0.025em] leading-none select-none",
+          "w-fit border-b-4 border-b-[#51EDC6] pb-1",
+          wordmarkGradient,
           sizes[variant],
         )}
         aria-label="REPAS"
       >
-        {LETTERS.map((letter, i) => (
-          <span
-            key={i}
-            style={{ color: letterColors[i] ?? MMM_LETTER_COLORS[i] }}
-            className="inline-block transition-transform duration-200 hover:-translate-y-0.5"
-          >
-            {letter}
-          </span>
-        ))}
+        REPAS
       </span>
 
-      {variant !== "compact" && (
+      {subtitleVisible && (
         <span
           className={cn(
-            "mt-2 max-w-md leading-snug",
-            variant === "hero"
-              ? "text-sm md:text-base"
-              : "text-xs",
-            tone === "white" ? "text-white/85" : "text-muted-foreground",
+            "max-w-md font-light leading-snug",
+            subtitleSizes[variant],
+            subtitleColor,
           )}
         >
-          <span className="font-semibold">R</span>éseau d&apos;
-          <span className="font-semibold">E</span>stimation et de{" "}
-          <span className="font-semibold">P</span>révision pour les{" "}
-          <span className="font-semibold">A</span>pprovisionnements{" "}
-          <span className="font-semibold">S</span>colaires
+          Réseau d&apos;Estimation et de Prévision pour les Approvisionnements
+          Scolaires
         </span>
       )}
     </div>

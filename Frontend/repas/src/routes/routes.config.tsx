@@ -1,7 +1,3 @@
-/**
- * Déclaration des routes — fichier principal à enrichir (nouvelles pages, redirections).
- * `layout: "public"` = accessible sans connexion. `layout: "app"` = auth + shell (voir internals/composeRouteElement).
- */
 import { PATHS } from "@/routes/paths";
 import type { AppRouteEntry } from "@/routes/app-route-entry";
 import { LoginPage } from "@/pages/login";
@@ -12,9 +8,7 @@ import { ForecastsListPage } from "@/pages/forecasts-list";
 import { ForecastNewPage } from "@/pages/forecast-new";
 import { ForecastDetailPage } from "@/pages/forecast-detail";
 
-/**
- * Ordre : routes statiques d'abord ; `notFound` en dernier (path "*").
- */
+
 export const APP_ROUTE_ENTRIES: AppRouteEntry[] = [
   { kind: "page", path: PATHS.LOGIN, layout: "public", Component: LoginPage },
   { kind: "page", path: PATHS.OIDC_CALLBACK, layout: "public", Component: OidcCallbackPage },

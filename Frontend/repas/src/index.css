@@ -1,57 +1,74 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: hsl(210.0000 40.0000% 98.0392%);
-  --foreground: hsl(217.2414 32.5843% 17.4510%);
+
+  --background: hsl(0 0% 98%);
+  --foreground: hsl(222 47% 11%);
   --card: hsl(0 0% 100%);
-  --card-foreground: hsl(217.2414 32.5843% 17.4510%);
+  --card-foreground: hsl(222 47% 11%);
   --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(217.2414 32.5843% 17.4510%);
-  --primary: hsl(224.3 38.5% 33.1%);
+  --popover-foreground: hsl(222 47% 11%);
+
+  --primary: hsl(219 98% 48%);
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(220 13.0435% 90.9804%);
-  --secondary-foreground: hsl(216.9231 19.1176% 26.6667%);
-  --muted: hsl(220.0000 14.2857% 95.8824%);
-  --muted-foreground: hsl(220 8.9362% 46.0784%);
-  --accent: hsl(224 60% 94%);
-  --accent-foreground: hsl(216.9231 19.1176% 26.6667%);
-  --destructive: hsl(0 84.2365% 60.1961%);
+  --primary-dark: hsl(220 60% 22%);
+
+  --secondary: hsl(210 20% 93%);
+  --secondary-foreground: hsl(222 47% 11%);
+  --muted: hsl(210 20% 93%);
+  --muted-foreground: hsl(215 15% 45%);
+  --accent: hsl(210 20% 90%);
+  --accent-foreground: hsl(222 47% 11%);
+  --destructive: hsl(0 84% 60%);
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(216.0000 12.1951% 83.9216%);
-  --input: hsl(216.0000 12.1951% 83.9216%);
-  --ring: hsl(224.3 38.5% 33.1%);
-  --chart-1: hsl(224.3 38.5% 33.1%);
-  --chart-2: hsl(18.1 65.6% 55.5%);
-  --chart-3: hsl(83.7 65.3% 44.1%);
-  --chart-4: hsl(297.5 37.8% 37.8%);
-  --chart-5: hsl(224.3 40% 55%);
-  --sidebar: hsl(220.0000 14.2857% 95.8824%);
-  --sidebar-foreground: hsl(217.2414 32.5843% 17.4510%);
-  --sidebar-primary: hsl(224.3 38.5% 33.1%);
+  --destructive-dark: hsl(0 84% 40%);
+
+  --border: hsl(214 20% 88%);
+  --input: hsl(214 20% 88%);
+  --ring: hsl(210 100% 45%);
+
+  --success: #00D9B5;
+  --success-dark: #0f937f;
+  --success-light: #51EDC6;
+  --success-foreground: #ffffff;
+  --success-muted-bg: #ecfdf5;
+  --success-muted-text: #065f46;
+
+  --chart-1: hsl(219 98% 48%);
+  --chart-2: 168 100% 43%;
+  --chart-3: hsl(220 60% 22%);
+  --chart-4: 18 80% 56%;
+  --chart-5: 142 70% 40%;
+
+  --sidebar: hsl(0 0% 100%);
+  --sidebar-foreground: hsl(222 47% 11%);
+  --sidebar-primary: hsl(210 100% 45%);
   --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(224 60% 94%);
-  --sidebar-accent-foreground: hsl(216.9231 19.1176% 26.6667%);
-  --sidebar-border: hsl(216.0000 12.1951% 83.9216%);
-  --sidebar-ring: hsl(224.3 38.5% 33.1%);
-  /* Couleurs charte Montpellier Méditerranée Métropole — disponibles pour
-     accents ponctuels (BrandLogo, gradients, illustrations). */
-  --mmm-blue: #344575;
+  --sidebar-accent: hsl(210 20% 93%);
+  --sidebar-accent-foreground: hsl(222 47% 11%);
+  --sidebar-border: hsl(214 20% 88%);
+  --sidebar-ring: hsl(210 100% 45%);
+
+  --mmm-blue: #0356F2;
   --mmm-orange: #D87043;
   --mmm-green: #80BA27;
   --mmm-purple: #823C85;
-  --font-sans: Inter, sans-serif;
-  --font-serif: Merriweather, serif;
-  --font-mono: JetBrains Mono, monospace;
-  --radius: 0.8rem;
-  --shadow-x: 0px;
-  --shadow-y: 4px;
-  --shadow-blur: 8px;
-  --shadow-spread: -1px;
-  --shadow-opacity: 0.1;
-  --shadow-color: hsl(0 0% 0%);
+
+  --font-sans: "Montpellier", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-serif: "Montpellier", serif;
+
+  --radius: 0.75rem;
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+  --shadow-card-blue: 0 0 20px 0 rgba(3, 86, 242, 0.12);
+  --shadow-card: 0 0 20px 0 rgba(3, 86, 242, 0.22);
+
   --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
   --shadow-sm: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
@@ -60,65 +77,55 @@
   --shadow-lg: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 4px 6px -2px hsl(0 0% 0% / 0.10);
   --shadow-xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 8px 10px -2px hsl(0 0% 0% / 0.10);
   --shadow-2xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.25);
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
 }
 
 .dark {
-  --background: hsl(222.2222 47.3684% 11.1765%);
-  --foreground: hsl(214.2857 31.8182% 91.3725%);
-  --card: hsl(217.2414 32.5843% 17.4510%);
-  --card-foreground: hsl(214.2857 31.8182% 91.3725%);
-  --popover: hsl(217.2414 32.5843% 17.4510%);
-  --popover-foreground: hsl(214.2857 31.8182% 91.3725%);
-  --primary: hsl(224.3 50% 62%);
-  --primary-foreground: hsl(222.2222 47.3684% 11.1765%);
-  --secondary: hsl(217.7778 23.0769% 22.9412%);
-  --secondary-foreground: hsl(216.0000 12.1951% 83.9216%);
-  --muted: hsl(217.2414 40.8451% 13.9216%);
-  --muted-foreground: hsl(217.8947 10.6145% 64.9020%);
-  --accent: hsl(216.9231 19.1176% 26.6667%);
-  --accent-foreground: hsl(216.0000 12.1951% 83.9216%);
-  --destructive: hsl(0 84.2365% 60.1961%);
-  --destructive-foreground: hsl(222.2222 47.3684% 11.1765%);
-  --border: hsl(215 13.7931% 34.1176%);
-  --input: hsl(215 13.7931% 34.1176%);
-  --ring: hsl(224.3 50% 62%);
-  --chart-1: hsl(224.3 50% 62%);
-  --chart-2: hsl(18.1 75% 65%);
-  --chart-3: hsl(83.7 60% 55%);
-  --chart-4: hsl(297.5 45% 60%);
-  --chart-5: hsl(224.3 40% 75%);
-  --sidebar: hsl(217.2414 32.5843% 17.4510%);
-  --sidebar-foreground: hsl(214.2857 31.8182% 91.3725%);
-  --sidebar-primary: hsl(224.3 50% 62%);
-  --sidebar-primary-foreground: hsl(222.2222 47.3684% 11.1765%);
-  --sidebar-accent: hsl(216.9231 19.1176% 26.6667%);
-  --sidebar-accent-foreground: hsl(216.0000 12.1951% 83.9216%);
-  --sidebar-border: hsl(215 13.7931% 34.1176%);
-  --sidebar-ring: hsl(224.3 50% 62%);
-  --mmm-blue: #344575;
-  --mmm-orange: #D87043;
-  --mmm-green: #80BA27;
-  --mmm-purple: #823C85;
-  --font-sans: Inter, sans-serif;
-  --font-serif: Merriweather, serif;
-  --font-mono: JetBrains Mono, monospace;
-  --radius: 0.8rem;
-  --shadow-x: 0px;
-  --shadow-y: 4px;
-  --shadow-blur: 8px;
-  --shadow-spread: -1px;
-  --shadow-opacity: 0.1;
-  --shadow-color: hsl(0 0% 0%);
-  --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
-  --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
-  --shadow-sm: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
-  --shadow: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 1px 2px -2px hsl(0 0% 0% / 0.10);
-  --shadow-md: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 2px 4px -2px hsl(0 0% 0% / 0.10);
-  --shadow-lg: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 4px 6px -2px hsl(0 0% 0% / 0.10);
-  --shadow-xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.10), 0px 8px 10px -2px hsl(0 0% 0% / 0.10);
-  --shadow-2xl: 0px 4px 8px -1px hsl(0 0% 0% / 0.25);
+  --background: hsl(222 47% 6%);
+  --foreground: hsl(210 40% 96%);
+  --card: hsl(222 44% 9%);
+  --card-foreground: hsl(210 40% 96%);
+  --popover: hsl(222 44% 9%);
+  --popover-foreground: hsl(210 40% 96%);
+
+  --primary: hsl(219 98% 55%);
+  --primary-foreground: hsl(222 47% 6%);
+  --primary-dark: hsl(220 60% 35%);
+
+  --secondary: hsl(222 30% 14%);
+  --secondary-foreground: hsl(210 40% 96%);
+  --muted: hsl(222 30% 14%);
+  --muted-foreground: hsl(215 20% 55%);
+  --accent: hsl(222 30% 18%);
+  --accent-foreground: hsl(210 40% 96%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --destructive-dark: hsl(0 84% 40%);
+
+  --border: hsl(222 30% 18%);
+  --input: hsl(222 30% 18%);
+  --ring: hsl(210 100% 56%);
+
+  --success: #00D9B5;
+  --success-dark: #0f937f;
+  --success-light: #51EDC6;
+  --success-foreground: #ffffff;
+  --success-muted-bg: #064e3b;
+  --success-muted-text: #d1fae5;
+
+  --chart-1: hsl(219 98% 55%);
+  --chart-2: 168 100% 50%;
+  --chart-3: hsl(220 60% 50%);
+  --chart-4: 18 80% 62%;
+  --chart-5: 142 70% 50%;
+
+  --sidebar: hsl(222 44% 9%);
+  --sidebar-foreground: hsl(210 40% 96%);
+  --sidebar-primary: hsl(210 100% 56%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(222 30% 14%);
+  --sidebar-accent-foreground: hsl(210 40% 96%);
+  --sidebar-border: hsl(222 30% 18%);
+  --sidebar-ring: hsl(210 100% 56%);
 }
 
 @theme inline {
@@ -130,6 +137,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-dark: var(--primary-dark);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -138,9 +146,18 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-dark: var(--destructive-dark);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-success-dark: var(--success-dark);
+  --color-success-light: var(--success-light);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-muted: var(--success-muted-bg);
+  --color-success-muted-foreground: var(--success-muted-text);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -158,6 +175,9 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
+  --font-montpellier: "Montpellier", system-ui, sans-serif;
+  --font-montpellier-condensed: "Montpellier Condensed", "Montpellier", system-ui, sans-serif;
+  --font-montpellier-narrow: "Montpellier Narrow", "Montpellier", system-ui, sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -172,13 +192,105 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+  --shadow-card-blue: var(--shadow-card-blue);
+  --shadow-card: var(--shadow-card);
+
+  --tracking-forma: 0.08em;
+
+  --animate-bar-grow: bar-grow 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  --animate-fade-in-up: fade-in-up 0.5s ease-out forwards;
+  --animate-pulse-subtle: pulse-subtle 2s ease-in-out infinite;
+  --animate-progress-shine: progress-shine 2s linear infinite;
+  --animate-radar-spin: radar-spin 10s linear infinite;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
+  html,
   body {
-    @apply bg-background text-foreground;
+    font-family: "Montpellier", system-ui, sans-serif;
   }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-subtle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes progress-shine {
+  from {
+    left: -100%;
+  }
+  to {
+    left: 200%;
+  }
+}
+
+@keyframes radar-spin {
+  from {
+    transform: rotate(20deg);
+  }
+  to {
+    transform: rotate(380deg);
+  }
+}
+
+.animate-bar-grow {
+  animation: var(--animate-bar-grow);
+  transform-origin: left center;
+}
+.animate-fade-in-up {
+  animation: var(--animate-fade-in-up);
+}
+.animate-pulse-subtle {
+  animation: var(--animate-pulse-subtle);
+}
+.animate-progress-shine {
+  animation: var(--animate-progress-shine);
+}
+.animate-radar-spin {
+  animation: var(--animate-radar-spin);
+}
+
+.font-montpellier {
+  font-family: "Montpellier", system-ui, sans-serif;
+}
+.font-montpellier-condensed {
+  font-family: "Montpellier Condensed", "Montpellier", system-ui, sans-serif;
+}
+.font-montpellier-narrow {
+  font-family: "Montpellier Narrow", "Montpellier", system-ui, sans-serif;
 }

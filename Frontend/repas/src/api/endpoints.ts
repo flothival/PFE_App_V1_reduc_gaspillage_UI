@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
     rowUpdate: (forecastId: number, rowId: number) =>
       `/api/forecasting/forecasts/${forecastId}/rows/${rowId}/`,
     export: (id: number) => `/api/forecasting/forecasts/${id}/export/`,
+    quota: "/api/forecasting/forecasts/quota/",
   },
 } as const;
 

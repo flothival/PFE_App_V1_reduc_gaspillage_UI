@@ -7,10 +7,7 @@ const LABELS: Record<ForecastStatus, string> = {
   error: "Erreur",
 };
 
-/**
- * Badge coloré qui reflète l'état d'une prévision.
- * Réutilisé sur la liste et le détail.
- */
+
 export function ForecastStatusBadge({ status }: { status: ForecastStatus }) {
   const variant =
     status === "done" ? "secondary" : status === "error" ? "destructive" : "outline";

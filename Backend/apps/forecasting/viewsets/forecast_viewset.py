@@ -19,6 +19,7 @@ from apps.forecasting.serializers import (
     ForecastRowSerializer,
     ForecastUpdateSerializer,
 )
+from apps.forecasting.services.quota import get_user_quota
 
 
 class ForecastViewSet(viewsets.ModelViewSet):
@@ -71,6 +72,17 @@ class ForecastViewSet(viewsets.ModelViewSet):
         return Response(
             ForecastDetailSerializer(forecast, context={"request": request}).data
         )
+
+    @action(detail=False, methods=["get"], url_path="quota", url_name="quota")
+    def quota(self, request):
+        """Renvoie l'état du quota de stockage pour l'utilisateur connecté.
+
+        Format : `{used_bytes, max_bytes, forecast_count}`. Consommé par
+        l'indicateur de quota sur la page liste des prévisions, et utilisé
+        par le front pour désactiver le formulaire de création quand le
+        quota est saturé.
+        """
+        return Response(get_user_quota(request.user))
 
     @action(
         detail=True,
@@ -135,7 +147,6 @@ class ForecastViewSet(viewsets.ModelViewSet):
             qs = qs.filter(date__lte=date_to)
         if sort_by:
             qs = qs.order_by(f"{'' if sort_dir == 'asc' else '-'}{sort_by}")
-        # Sinon, le Meta.ordering = ["date", "school"] s'applique par défaut.
 
         rows = qs.values("date", "school", "final_amount", "supplement_humain")
         df = pd.DataFrame.from_records(rows)
@@ -153,9 +164,6 @@ class ForecastViewSet(viewsets.ModelViewSet):
         df["DATE"] = pd.to_datetime(df["DATE"]).dt.date.astype(str)
         df["A PREPARER"] = df["A PREPARER"].fillna(0).astype(int)
         df["Supplement Humain"] = df["Supplement Humain"].fillna(0).astype(int)
-        # Colonne dédiée répétée sur chaque ligne : la valeur est la même
-        # partout (paramètre global de la prévision), mais en colonne plutôt
-        # qu'en ligne séparée, Excel peut filtrer/trier sans la perdre.
         df["Stock tampon"] = int(forecast.stock_tampon)
 
         is_filtered = bool(school or date_from or date_to or sort_by)

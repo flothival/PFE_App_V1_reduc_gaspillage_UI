@@ -1,6 +1,3 @@
-/**
- * Chemins d’URL — à ajuster ici quand tu ajoutes ou renommes des pages.
- */
 export const PATHS = {
   HOME: "/",
   LOGIN: "/login",

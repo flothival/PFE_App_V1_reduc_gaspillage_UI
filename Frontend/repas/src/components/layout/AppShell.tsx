@@ -1,15 +1,12 @@
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
 
-/**
- * Colonne pleine hauteur (viewport) : header fixe + footer fixe, le main prend
- * le reste et défile en vertical / horizontal si le contenu dépasse.
- */
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-dvh min-h-0 flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-background">
       <AppHeader />
-      <main className="min-h-0 min-w-0 flex-1 overflow-auto">{children}</main>
+      <main className="flex-1">{children}</main>
       <AppFooter />
     </div>
   );

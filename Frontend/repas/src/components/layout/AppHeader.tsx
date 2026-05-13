@@ -19,25 +19,12 @@ export const AppHeader = observer(() => {
 
   return (
     <header
-      className="relative flex h-16 shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 md:px-6"
-      style={{
-        background:
-          "linear-gradient(90deg, #344575 0%, #3d4e85 55%, #4a4488 100%)",
-      }}
+      className="relative flex h-16 shrink-0 items-center justify-between gap-3 bg-primary px-4 md:px-6"
     >
-      {/* Bandeau décoratif coloré en bas, rappelle la charte MMM */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px]"
-        style={{
-          background:
-            "linear-gradient(90deg, #D87043 0%, #80BA27 33%, #823C85 66%, #344575 100%)",
-        }}
-      />
-
       <Link
         to={PATHS.HOME}
-        className="group inline-flex items-center gap-3 transition-opacity hover:opacity-90"
+        className="inline-flex items-center transition-opacity hover:opacity-90"
+        aria-label="Accueil REPAS"
       >
         <BrandLogo variant="compact" tone="white" />
       </Link>
@@ -45,16 +32,10 @@ export const AppHeader = observer(() => {
       <div className="flex shrink-0 items-center gap-3">
         {fullName && (
           <div className="hidden text-right md:block">
-            <p className="text-[10px] uppercase tracking-widest text-white/70">
+            <p className="text-[10px] uppercase tracking-widest text-white/70 leading-none">
               Bonjour
             </p>
-            <p
-              className="text-lg font-extrabold leading-tight tracking-tight bg-clip-text text-transparent"
-              style={{
-                backgroundImage:
-                  "linear-gradient(90deg, #FFB088 0%, #FFD27A 35%, #B8E060 70%, #FFFFFF 100%)",
-              }}
-            >
+            <p className="font-montpellier text-base font-bold leading-tight tracking-tight text-white">
               {fullName}
             </p>
           </div>
