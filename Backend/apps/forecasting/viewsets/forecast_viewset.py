@@ -39,8 +39,12 @@ class ForecastViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
+        # Les colonnes BinaryField (CSVs bruts) ne sont jamais renvoyées au
+        # client — on les exclut du SELECT pour ne pas les charger en mémoire.
         return (
-            Forecast.objects.filter(user=self.request.user).prefetch_related("rows")
+            Forecast.objects.filter(user=self.request.user)
+            .defer("history_file", "future_file")
+            .prefetch_related("rows")
         )
 
     def get_serializer_class(self):

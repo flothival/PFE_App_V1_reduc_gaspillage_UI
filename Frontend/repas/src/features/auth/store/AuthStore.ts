@@ -8,7 +8,9 @@ import {
   getRefreshToken,
   persistUserSnapshot,
   registerSessionClear,
+  registerSessionExpired,
   setTokenPair,
+  toastAuthError,
 } from "@/lib/auth";
 import { type AuthUser, profileToUser } from "@/features/auth/model/types";
 
@@ -24,6 +26,9 @@ class AuthStore {
         this.user = null;
         this.error = null;
       });
+    });
+    registerSessionExpired(() => {
+      toastAuthError("Votre session a expiré. Veuillez vous reconnecter.");
     });
     const saved = localStorage.getItem("auth_user");
     if (saved) {

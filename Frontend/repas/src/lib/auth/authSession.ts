@@ -3,10 +3,16 @@ const STORAGE_REFRESH = "auth_refresh";
 const STORAGE_USER = "auth_user";
 
 let onSessionCleared: (() => void) | null = null;
+let onSessionExpired: (() => void) | null = null;
 
 /** Appelé une fois depuis AuthStore pour synchroniser MobX quand les tokens sont invalidés côté API. */
 export function registerSessionClear(handler: () => void) {
   onSessionCleared = handler;
+}
+
+/** Appelé une fois depuis AuthStore pour afficher un toast quand la session expire automatiquement. */
+export function registerSessionExpired(handler: () => void) {
+  onSessionExpired = handler;
 }
 
 export function getAccessToken(): string | null {
@@ -35,4 +41,10 @@ export function clearAuthSession() {
   localStorage.removeItem(STORAGE_REFRESH);
   localStorage.removeItem(STORAGE_USER);
   onSessionCleared?.();
+}
+
+/** Expiration automatique (tokens invalides) — efface la session + notifie pour afficher un toast. */
+export function expireAuthSession() {
+  clearAuthSession();
+  onSessionExpired?.();
 }

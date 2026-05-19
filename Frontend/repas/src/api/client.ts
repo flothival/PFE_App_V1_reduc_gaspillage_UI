@@ -3,7 +3,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 import {
-  clearAuthSession,
+  expireAuthSession,
   getAccessToken,
   getRefreshToken,
   setAccessToken,
@@ -110,7 +110,7 @@ api.interceptors.response.use(
 
     const path = original.url ?? "";
     if (isAuthRefreshPath(path)) {
-      clearAuthSession();
+      expireAuthSession();
       return Promise.reject(error);
     }
     if (isAuthLoginPath(path) || isAuthOidcPath(path)) {
@@ -118,13 +118,13 @@ api.interceptors.response.use(
     }
 
     if (original._retry) {
-      clearAuthSession();
+      expireAuthSession();
       return Promise.reject(error);
     }
 
     const newAccess = await getRefreshPromise();
     if (!newAccess) {
-      clearAuthSession();
+      expireAuthSession();
       return Promise.reject(error);
     }
 
